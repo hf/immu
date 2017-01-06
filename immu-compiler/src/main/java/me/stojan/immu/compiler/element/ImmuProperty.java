@@ -17,19 +17,31 @@ public class ImmuProperty extends ImmuElement {
 
   /** Checks that the property does not have parameters. */
   public static final ImmuPredicate<ImmuProperty> NO_PARAMETERS =
-      (env, prop) -> ImmuValidationMessages.fromPredicateResult(prop.sourceType().getParameterTypes().isEmpty(), ImmuValidationMessages.propertyHasParameters(prop));
+      (env, prop) -> {
+        final boolean hasParameters = !prop.sourceType().getParameterTypes().isEmpty();
+        return hasParameters ? ImmuPredicate.Result.error(ImmuValidationMessages.propertyHasParameters(prop)) : ImmuPredicate.Result.success();
+      };
 
   /** Checks that the property does not throw exceptions. */
   public static final ImmuPredicate<ImmuProperty> NO_THROWS =
-      (env, prop) -> ImmuValidationMessages.fromPredicateResult(prop.sourceType().getThrownTypes().isEmpty(), ImmuValidationMessages.propertyThrows(prop));
+      (env, prop) -> {
+        final boolean isThrowing = !prop.sourceType().getThrownTypes().isEmpty();
+        return isThrowing ? ImmuPredicate.Result.error(ImmuValidationMessages.propertyThrows(prop)) : ImmuPredicate.Result.success();
+      };
 
   /** Checks that the property does not have generic type variables. */
   public static final ImmuPredicate<ImmuProperty> NO_TYPE_VARIABLES =
-      (env, prop) -> ImmuValidationMessages.fromPredicateResult(prop.sourceType().getParameterTypes().isEmpty(), ImmuValidationMessages.propertyHasTypeVariables(prop));
+      (env, prop) -> {
+        final boolean hasTypeVars = !prop.sourceType().getTypeVariables().isEmpty();
+        return hasTypeVars ? ImmuPredicate.Result.error(ImmuValidationMessages.propertyHasTypeVariables(prop)) : ImmuPredicate.Result.success();
+      };
 
   /** Checks that the property does not return void. */
   public static final ImmuPredicate<ImmuProperty> NO_RETURN_VOID =
-      (env, prop) -> ImmuValidationMessages.fromPredicateResult(TypeKind.VOID.equals(prop.sourceType().getKind()), ImmuValidationMessages.propertyReturnsVoid(prop));
+      (env, prop) -> {
+        final boolean isVoid = TypeKind.VOID.equals(prop.sourceType().getKind());
+        return isVoid ? ImmuPredicate.Result.error(ImmuValidationMessages.propertyReturnsVoid(prop)) : ImmuPredicate.Result.success();
+      };
 
   /** A collection of all of the predicates that need to be applied to a property during validation. */
   public static final List<ImmuPredicate<ImmuProperty>> PREDICATES = Arrays.asList(
@@ -58,7 +70,7 @@ public class ImmuProperty extends ImmuElement {
   }
 
   @Override
-  public List<String> validate(ProcessingEnvironment environment) {
+  public List<ImmuPredicate.Result> validate(ProcessingEnvironment environment) {
     return runPredicates(environment, this, PREDICATES);
   }
 

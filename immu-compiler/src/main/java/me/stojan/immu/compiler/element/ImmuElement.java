@@ -26,28 +26,17 @@ public abstract class ImmuElement {
     return element;
   }
 
-  public abstract List<String> validate(ProcessingEnvironment environment);
+  public abstract List<ImmuPredicate.Result> validate(ProcessingEnvironment environment);
 
-  public static <T extends ImmuElement> List<String> runPredicates(ProcessingEnvironment environment, T element, List<ImmuPredicate<T>> predicates) {
+  public static <T extends ImmuElement> List<ImmuPredicate.Result> runPredicates(ProcessingEnvironment environment, T element, List<ImmuPredicate<T>> predicates) {
     return predicates
         .stream()
         .map((p) -> p.apply(environment, element))
-        .reduce(new ArrayList<>(), (a, l) -> {
-          a.addAll(l);
-          return a;
-        });
-  }
-
-  protected final void error(ProcessingEnvironment env, String message) {
-    env.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);
+        .collect(Collectors.toList());
   }
 
   protected final List<Element> methods() {
     return filter(ElementKind.METHOD);
-  }
-
-  protected final List<Element> classes() {
-    return filter(ElementKind.CLASS);
   }
 
   private List<Element> filter(ElementKind kind) {

@@ -73,4 +73,16 @@ public class ImmuValidationMessages {
   public static List<String> nonImmuInterfaceHasMethod(Element extendingIface, Element iface, Element method) {
     return Collections.singletonList(String.format((Locale) null, "%s extends %s, a non-@Immu interface with a method %s#%s(...); @Immu or @SuperImmu interfaces may only extend non-@Immu interfaces without methods", extendingIface.getSimpleName(), iface.getSimpleName(), iface.getSimpleName(), method.getSimpleName()));
   }
+
+  public static List<String> immuHasRequired(ImmuObjectElement element) {
+    final String immuName;
+
+    if (null != element.element().getAnnotation(SuperImmu.class)) {
+      immuName = "@SuperImmu";
+    } else {
+      immuName = "@Immu";
+    }
+
+    return Collections.singletonList(String.format((Locale) null, "%s interface %s is annotated as @Required but it will have no effect (it is only valid for properties)", immuName, element.name()));
+  }
 }

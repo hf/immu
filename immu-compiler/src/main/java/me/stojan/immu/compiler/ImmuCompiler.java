@@ -7,6 +7,7 @@ import me.stojan.immu.compiler.element.ImmuElement;
 import me.stojan.immu.compiler.element.ImmuObjectElement;
 import me.stojan.immu.compiler.classer.ImmuBuilderClasser;
 import me.stojan.immu.compiler.classer.ImmuObjectClasser;
+import me.stojan.immu.compiler.element.predicate.ImmuPredicate;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -24,15 +25,22 @@ public class ImmuCompiler implements Processor {
 
   private static final class ValidationResult {
     private final ImmuElement element;
-    private final List<String> errors;
+    private final List<ImmuPredicate.Result> results;
+
+    private ValidationResult(ImmuElement element, List<ImmuPredicate.Result> results) {
+      this.element = element;
+      this.results = results;
+    }
 
     private static ValidationResult from(ProcessingEnvironment env, ImmuElement element) {
       return new ValidationResult(element, element.validate(env));
     }
 
-    private ValidationResult(ImmuElement element, List<String> errors) {
-      this.element = element;
-      this.errors = errors;
+    public boolean isSuccess() {
+      return results
+          .stream()
+          .map(ImmuPredicate.Result::isSuccess)
+          .reduce(true, (a, r) -> r && a);
     }
   }
 
@@ -82,11 +90,21 @@ public class ImmuCompiler implements Processor {
         .map((e) -> ValidationResult.from(env, e))
         .collect(Collectors.toList());
 
-    validationResults.forEach((result) -> result.errors.forEach((message) -> env.getMessager().printMessage(Diagnostic.Kind.ERROR, message, result.element.element())));
+    validationResults.forEach((validation) -> {
+      validation.results.forEach((result) -> {
+        result.warnings.forEach((warning) -> {
+          env.getMessager().printMessage(Diagnostic.Kind.WARNING, warning, validation.element.element());
+        });
+
+        result.errors.forEach((error) -> {
+          env.getMessager().printMessage(Diagnostic.Kind.ERROR, error, validation.element.element());
+        });
+      });
+    });
 
     final boolean allValid = validationResults
         .stream()
-        .map((result) -> result.errors.isEmpty())
+        .map(ValidationResult::isSuccess)
         .reduce(true, (a, r) -> r && a);
 
     if (!allValid) {

@@ -1,6 +1,7 @@
 package me.stojan.immu.compiler.element;
 
 import me.stojan.immu.annotation.Immu;
+import me.stojan.immu.annotation.Required;
 import me.stojan.immu.annotation.SuperImmu;
 import me.stojan.immu.compiler.element.predicate.ImmuPredicate;
 
@@ -11,26 +12,52 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Created by vuk on 05/01/17.
+ * An element annotated with {@link Immu} or {@link SuperImmu}.
  */
 public class ImmuObjectElement extends ImmuElement {
 
+  /** Checks that the annotated object is an interface. */
   public static final ImmuPredicate<ImmuObjectElement> OBJECT_IS_INTERFACE =
-      (env, prop) -> ImmuValidationMessages.fromPredicateResult(prop.typeElement().getKind().isInterface(), ImmuValidationMessages.elementNotInterface(prop));
+      (env, element) -> {
+        final boolean notInterface = !element.typeElement().getKind().isInterface();
+        return notInterface ? ImmuPredicate.Result.error(ImmuValidationMessages.elementNotInterface(element)) : ImmuPredicate.Result.success();
+      };
 
+  /** Checks that if the interface has super-interfaces that are not annotated, they are empty. */
   public static final ImmuPredicate<ImmuObjectElement> EMPTY_SUPERINTERFACES =
-      (env, prop) -> prop.superInterfaces()
-          .stream()
-          .map((iface) -> checkSuperInterface(env, prop.typeElement().asType(), iface))
-          .reduce(new ArrayList<>(), (a, l) -> {
-            a.addAll(l);
-            return a;
-          });
+      (env, element) -> {
+        final List<String> errors = element.superInterfaces()
+            .stream()
+            .map((iface) -> checkSuperInterface(env, element.typeElement().asType(), iface))
+            .reduce(new ArrayList<>(), (a, l) -> {
+              a.addAll(l);
+              return a;
+            });
+
+        if (errors.isEmpty()) {
+          return ImmuPredicate.Result.success();
+        }
+
+        return ImmuPredicate.Result.error(errors);
+      };
+
+  /** Checks that the interface is not annotated with {@link Required}. */
+  public static final ImmuPredicate<ImmuObjectElement> REQUIRED_INTERFACE =
+      (env, element) -> {
+        final boolean hasRequired = null != element.element().getAnnotation(Required.class);
+        return hasRequired ? ImmuPredicate.Result.warning(ImmuValidationMessages.immuHasRequired(element)) : ImmuPredicate.Result.success();
+      };
 
   public static final List<ImmuPredicate<ImmuObjectElement>> PREDICATES = Arrays.asList(
       OBJECT_IS_INTERFACE,
-      EMPTY_SUPERINTERFACES);
+      EMPTY_SUPERINTERFACES,
+      REQUIRED_INTERFACE);
 
+  /**
+   * Create a new object element from the provided element.
+   * @param element the element, must not be null
+   * @return the element, never null
+   */
   public static ImmuObjectElement from(Element element) {
     return new ImmuObjectElement(element);
   }
@@ -40,14 +67,23 @@ public class ImmuObjectElement extends ImmuElement {
   }
 
   @Override
-  public List<String> validate(ProcessingEnvironment environment) {
+  public List<ImmuPredicate.Result> validate(ProcessingEnvironment environment) {
     return runPredicates(environment, this, PREDICATES);
   }
 
+  /**
+   * Returns a list of the immediate super-interfaces of the element.
+   * @return the list, never null
+   */
   public List<? extends TypeMirror> superInterfaces() {
     return ((TypeElement) element).getInterfaces();
   }
 
+  /**
+   * Returns a list of the immediate properties in the object.
+   * @see #superProperties(ProcessingEnvironment)
+   * @return the properties, never null
+   */
   public List<ImmuProperty> properties() {
     return methods()
         .stream()
