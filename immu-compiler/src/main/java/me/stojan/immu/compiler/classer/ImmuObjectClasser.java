@@ -85,7 +85,7 @@ public class ImmuObjectClasser extends ImmuClasser {
         .addModifiers(Modifier.PUBLIC)
         .returns(int.class)
         .addAnnotation(Override.class)
-        .addCode(hashCodeBlock(properties))
+        .addCode(hashCodeBlock(immuClass, properties))
         .build();
 
     final MethodSpec toString = MethodSpec.methodBuilder("toString")
@@ -157,16 +157,16 @@ public class ImmuObjectClasser extends ImmuClasser {
         .build();
   }
 
-  private CodeBlock hashCodeBlock(List<ImmuProperty> properties) {
+  private CodeBlock hashCodeBlock(ClassName immuClass, List<ImmuProperty> properties) {
     final CodeBlock.Builder builder = CodeBlock.builder();
 
     if (properties.isEmpty()) {
-      builder.addStatement("return super.hashCode()");
+      builder.addStatement("return $T.class.hashCode()", immuClass);
 
       return builder.build();
     }
 
-    builder.addStatement("int hashCode = 0");
+    builder.addStatement("int hashCode = $T.class.hashCode()", immuClass);
 
     for (ImmuProperty property : properties) {
       final String name = property.name().toString();
