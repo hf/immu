@@ -95,6 +95,14 @@ public class ImmuObjectClasser extends ImmuClasser {
         .addCode(toStringBlock(immuClass, properties))
         .build();
 
+    final MethodSpec equals = MethodSpec.methodBuilder("equals")
+        .addModifiers(Modifier.PUBLIC)
+        .returns(boolean.class)
+        .addAnnotation(Override.class)
+        .addParameter(Object.class, "object")
+        .addCode(equalsBlock(immuClass, properties))
+        .build();
+
     final List<MethodSpec> methods = properties
         .stream()
         .map((p) -> MethodSpec.methodBuilder(p.name().toString())
@@ -114,6 +122,7 @@ public class ImmuObjectClasser extends ImmuClasser {
         .addMethod(constructor)
         .addMethods(methods)
         .addMethod(hashCode)
+        .addMethod(equals)
         .addMethod(toString)
         .build();
   }
@@ -168,37 +177,93 @@ public class ImmuObjectClasser extends ImmuClasser {
       } else {
         builder.addStatement("hashCode ^= ( null == this." + name + " ? 0 : " + hashCodeInvocation + " )");
       }
-
-      builder.addStatement("hashCode <<= 1");
     }
 
-    builder.addStatement("hashCode *= 31");
-    builder.addStatement("hashCode |= 1");
     builder.addStatement("return hashCode");
 
     return builder.build();
   }
 
   private String hashCodeInvocation(String name, TypeKind kind) {
+    final String value = "this." + name;
+
     switch (kind) {
       case ARRAY:
-        return "java.util.Arrays.hashCode(this." + name + ")";
+        return "java.util.Arrays.hashCode(" + value + ")";
 
       case INT:
-        return "this." + name;
+        return value;
 
       case BYTE:
       case SHORT:
-        return "((~0) & this." + name + ")";
+        return "((~0) & " + value + ")";
 
       case CHAR:
-        return "((int) this." + name + ")";
+        return "((int) " + value + ")";
 
       case LONG:
-        return "((int) (this." + name + " >> 32) ^ (this." + name + "))";
+        return "((int) (" + value + " >> 32) ^ (" + value + "))";
 
       default:
-        return "this." + name + ".hashCode()";
+        return value + ".hashCode()";
     }
+  }
+
+  private CodeBlock equalsBlock(ClassName immuClass, List<ImmuProperty> properties) {
+    final CodeBlock.Builder builder = CodeBlock.builder();
+
+    builder.beginControlFlow("if (this == object)");
+    builder.addStatement("return true");
+    builder.endControlFlow();
+
+    builder.beginControlFlow("if (null == object)");
+    builder.addStatement("return false");
+    builder.endControlFlow();
+
+    builder.beginControlFlow("if (!(object instanceof $T))", immuClass);
+    builder.addStatement("return false");
+    builder.endControlFlow();
+
+    builder.addStatement("final $T immuObject = ($T) object", immuClass, immuClass);
+
+    builder.addStatement("boolean equals = true");
+
+    properties.forEach((p) -> {
+      final String equalsInvocation = equalsInvocation(p);
+
+      builder.addStatement("equals = equals && " + equalsInvocation);
+    });
+
+    builder.addStatement("return equals");
+
+    return builder.build();
+  }
+
+  private String equalsInvocation(ImmuProperty property) {
+    final String name = property.name().toString();
+    final String a = "this." + name;
+    final String b = "immuObject." + name + "()";
+
+    final String invocation;
+
+    switch (property.returnType().getKind()) {
+      case DECLARED:
+        invocation = a + ".equals(" + b + ")";
+        break;
+
+      case ARRAY:
+        invocation = "java.util.Arrays.equals(" + a + ", " + b + ")";
+        break;
+
+      default:
+        invocation = a + " == " + b;
+        break;
+    }
+
+    if (!property.isNonNull() && !property.isPrimitive()) {
+      return "(" + a + " == " + b + ") || (null != " + a + " && null != " + b + " && " + a + ".equals(" + b + "))";
+    }
+
+    return "(" + invocation + ")";
   }
 }
