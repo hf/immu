@@ -12,10 +12,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Created by vuk on 05/01/17.
+ * Generates the class for the builder.
+ *
+ * @see #builderClass()
  */
 public class ImmuBuilderClasser extends ImmuClasser {
 
+  /**
+   * Create a builder classer from the element.
+   * @param element the element, must not be null
+   * @return the classer, never null
+   */
   public static ImmuBuilderClasser from(ImmuObjectElement element) {
     return new ImmuBuilderClasser(element);
   }

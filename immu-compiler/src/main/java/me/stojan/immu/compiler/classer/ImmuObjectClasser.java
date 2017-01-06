@@ -11,10 +11,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Created by vuk on 05/01/17.
+ * Generates the class for the immutable object implementation.
+ *
+ * @see #objectClass()
  */
 public class ImmuObjectClasser extends ImmuClasser {
 
+  /**
+   * Create an object classer from the element.
+   * @param element the element, must not be null
+   * @return the object classer, never null
+   */
   public static ImmuObjectClasser from(ImmuObjectElement element) {
     return new ImmuObjectClasser(element);
   }
