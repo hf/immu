@@ -1,20 +1,48 @@
 package me.stojan.immu.compiler.element;
 
 import me.stojan.immu.annotation.NonNull;
+import me.stojan.immu.compiler.element.predicate.ImmuPredicate;
 
-import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import java.lang.reflect.Type;
+import java.util.*;
 
 /**
- * Created by vuk on 05/01/17.
+ * An @Immu property. This is typically a method without parameters, type variables or exceptions.
  */
 public class ImmuProperty extends ImmuElement {
 
+  /** Checks that the property does not have parameters. */
+  public static final ImmuPredicate<ImmuProperty> NO_PARAMETERS =
+      (env, prop) -> ImmuValidationMessages.fromPredicateResult(prop.sourceType().getParameterTypes().isEmpty(), ImmuValidationMessages.propertyHasParameters(prop));
+
+  /** Checks that the property does not throw exceptions. */
+  public static final ImmuPredicate<ImmuProperty> NO_THROWS =
+      (env, prop) -> ImmuValidationMessages.fromPredicateResult(prop.sourceType().getThrownTypes().isEmpty(), ImmuValidationMessages.propertyThrows(prop));
+
+  /** Checks that the property does not have generic type variables. */
+  public static final ImmuPredicate<ImmuProperty> NO_TYPE_VARIABLES =
+      (env, prop) -> ImmuValidationMessages.fromPredicateResult(prop.sourceType().getParameterTypes().isEmpty(), ImmuValidationMessages.propertyHasTypeVariables(prop));
+
+  /** Checks that the property does not return void. */
+  public static final ImmuPredicate<ImmuProperty> NO_RETURN_VOID =
+      (env, prop) -> ImmuValidationMessages.fromPredicateResult(TypeKind.VOID.equals(prop.sourceType().getKind()), ImmuValidationMessages.propertyReturnsVoid(prop));
+
+  /** A collection of all of the predicates that need to be applied to a property during validation. */
+  public static final List<ImmuPredicate<ImmuProperty>> PREDICATES = Arrays.asList(
+      NO_PARAMETERS,
+      NO_TYPE_VARIABLES,
+      NO_THROWS,
+      NO_RETURN_VOID);
+
+  /**
+   * Create a property from the element.
+   * @param element the element, must be a method, must not be null
+   * @return the property, never null
+   */
   public static ImmuProperty from(Element element) {
     switch (element.getKind()) {
       case METHOD:
@@ -30,53 +58,38 @@ public class ImmuProperty extends ImmuElement {
   }
 
   @Override
-  public boolean validate(ProcessingEnvironment env) {
-    boolean isValid = true;
-
-    final ExecutableType type = sourceType();
-
-    if (!type.getParameterTypes().isEmpty()) {
-      isValid = false;
-      error(env, "@Immu methods must not have parameters");
-    }
-
-    if (!type.getTypeVariables().isEmpty()) {
-      isValid = false;
-      error(env, "@Immu methods must not have generic sourceType parameters");
-    }
-
-    if (!type.getThrownTypes().isEmpty()) {
-      isValid = false;
-      error(env, "@Immu methods must not throw exceptions");
-    }
-
-    final TypeMirror returnType = type.getReturnType();
-
-    if (TypeKind.VOID.equals(returnType.getKind())) {
-      isValid = false;
-      error(env, "@Immu methods must not return void");
-    }
-
-    if (isPrimitive() && isNonNull()) {
-      isValid = false;
-      error(env, "@NonNull should not be used for primitive types");
-    }
-
-    return isValid;
+  public List<String> validate(ProcessingEnvironment environment) {
+    return runPredicates(environment, this, PREDICATES);
   }
 
+  /**
+   * Returns the source type of the property. This is always an {@link ExecutableType}.
+   * @return the source type, never null
+   */
   public ExecutableType sourceType() {
     return (ExecutableType) element.asType();
   }
 
+  /**
+   * Returns the return type of the property.
+   * @return the return type mirror, never null
+   */
   public TypeMirror returnType() {
     return sourceType().getReturnType();
   }
 
+  /**
+   * Checks if the return type of the property is a primitive type.
+   * @return if it is a primitive type, never null
+   */
   public boolean isPrimitive() {
     return returnType().getKind().isPrimitive();
   }
 
+  /**
+   * Checks if the property is marked as {@link @NonNull}.
+   * @return if it is marked as {@link @NonNull}
+   */
   public boolean isNonNull() {
     return null != element.getAnnotation(NonNull.class);
   }

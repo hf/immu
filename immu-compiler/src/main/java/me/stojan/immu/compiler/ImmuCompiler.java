@@ -3,6 +3,7 @@ package me.stojan.immu.compiler;
 import com.squareup.javapoet.JavaFile;
 import me.stojan.immu.annotation.Immu;
 import me.stojan.immu.annotation.SuperImmu;
+import me.stojan.immu.compiler.element.ImmuElement;
 import me.stojan.immu.compiler.element.ImmuObjectElement;
 import me.stojan.immu.compiler.classer.ImmuBuilderClasser;
 import me.stojan.immu.compiler.classer.ImmuObjectClasser;
@@ -17,9 +18,23 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Created by vuk on 05/01/17.
+ * The Immu compiler.
  */
 public class ImmuCompiler implements Processor {
+
+  private static final class ValidationResult {
+    private final ImmuElement element;
+    private final List<String> errors;
+
+    private static ValidationResult from(ProcessingEnvironment env, ImmuElement element) {
+      return new ValidationResult(element, element.validate(env));
+    }
+
+    private ValidationResult(ImmuElement element, List<String> errors) {
+      this.element = element;
+      this.errors = errors;
+    }
+  }
 
   private ProcessingEnvironment env;
 
@@ -58,9 +73,21 @@ public class ImmuCompiler implements Processor {
         .map(ImmuObjectElement::from)
         .collect(Collectors.toList());
 
-    final boolean allValid = Stream.concat(superObjectElements.stream(), objectElements.stream())
-        .map((e) -> e.validate(env))
-        .reduce(true, (a, b) -> a && b);
+    final Set<ImmuObjectElement> validationElements = new HashSet<>();
+    validationElements.addAll(objectElements);
+    validationElements.addAll(superObjectElements);
+
+    final List<ValidationResult> validationResults = validationElements
+        .stream()
+        .map((e) -> ValidationResult.from(env, e))
+        .collect(Collectors.toList());
+
+    validationResults.forEach((result) -> result.errors.forEach((message) -> env.getMessager().printMessage(Diagnostic.Kind.ERROR, message, result.element.element())));
+
+    final boolean allValid = validationResults
+        .stream()
+        .map((result) -> result.errors.isEmpty())
+        .reduce(true, (a, r) -> r && a);
 
     if (!allValid) {
       return false;

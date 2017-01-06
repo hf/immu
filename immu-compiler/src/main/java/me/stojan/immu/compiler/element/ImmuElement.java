@@ -1,15 +1,14 @@
 package me.stojan.immu.compiler.element;
 
-import javax.annotation.processing.Messager;
+import me.stojan.immu.compiler.element.predicate.ImmuPredicate;
+
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Name;
-import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -27,7 +26,17 @@ public abstract class ImmuElement {
     return element;
   }
 
-  public abstract boolean validate(ProcessingEnvironment env);
+  public abstract List<String> validate(ProcessingEnvironment environment);
+
+  public static <T extends ImmuElement> List<String> runPredicates(ProcessingEnvironment environment, T element, List<ImmuPredicate<T>> predicates) {
+    return predicates
+        .stream()
+        .map((p) -> p.apply(environment, element))
+        .reduce(new ArrayList<>(), (a, l) -> {
+          a.addAll(l);
+          return a;
+        });
+  }
 
   protected final void error(ProcessingEnvironment env, String message) {
     env.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);

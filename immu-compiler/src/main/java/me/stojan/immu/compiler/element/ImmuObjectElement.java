@@ -2,23 +2,34 @@ package me.stojan.immu.compiler.element;
 
 import me.stojan.immu.annotation.Immu;
 import me.stojan.immu.annotation.SuperImmu;
+import me.stojan.immu.compiler.element.predicate.ImmuPredicate;
 
-import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Types;
-import javax.tools.Diagnostic;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * Created by vuk on 05/01/17.
  */
 public class ImmuObjectElement extends ImmuElement {
+
+  public static final ImmuPredicate<ImmuObjectElement> OBJECT_IS_INTERFACE =
+      (env, prop) -> ImmuValidationMessages.fromPredicateResult(prop.typeElement().getKind().isInterface(), ImmuValidationMessages.elementNotInterface(prop));
+
+  public static final ImmuPredicate<ImmuObjectElement> EMPTY_SUPERINTERFACES =
+      (env, prop) -> prop.superInterfaces()
+          .stream()
+          .map((iface) -> checkSuperInterface(env, prop.typeElement().asType(), iface))
+          .reduce(new ArrayList<>(), (a, l) -> {
+            a.addAll(l);
+            return a;
+          });
+
+  public static final List<ImmuPredicate<ImmuObjectElement>> PREDICATES = Arrays.asList(
+      OBJECT_IS_INTERFACE,
+      EMPTY_SUPERINTERFACES);
 
   public static ImmuObjectElement from(Element element) {
     return new ImmuObjectElement(element);
@@ -29,27 +40,8 @@ public class ImmuObjectElement extends ImmuElement {
   }
 
   @Override
-  public boolean validate(ProcessingEnvironment env) {
-    final boolean isInterface = element.getKind().isInterface();
-    final boolean isAbstractClass = element.getKind().isClass() && element.getModifiers().contains(Modifier.ABSTRACT);
-
-    boolean isValid = true;
-
-    if (!isInterface) {
-      isValid = false;
-      error(env, "@Immu annotations may only be used on interfaces");
-    }
-
-    final TypeElement typeElement = (TypeElement) element;
-    final List<? extends TypeMirror> interfaces = typeElement.getInterfaces();
-
-    for (TypeMirror iface : interfaces) {
-      isValid = checkSuperInterface(env, iface) && isValid;
-    }
-
-    return properties()
-        .stream()
-        .reduce(isValid, (a, p) -> p.validate(env) && a, (a, b) -> a && b);
+  public List<String> validate(ProcessingEnvironment environment) {
+    return runPredicates(environment, this, PREDICATES);
   }
 
   public List<? extends TypeMirror> superInterfaces() {
@@ -63,6 +55,11 @@ public class ImmuObjectElement extends ImmuElement {
         .collect(Collectors.toList());
   }
 
+  /**
+   * Returns a list of all of the super properties of this element in order starting from the most super type.
+   * @param env the environment, must not be null
+   * @return the properties, must not be null
+   */
   public List<ImmuProperty> superProperties(ProcessingEnvironment env) {
     final TypeElement typeElement = (TypeElement) element;
 
@@ -77,16 +74,16 @@ public class ImmuObjectElement extends ImmuElement {
     return properties;
   }
 
+  /**
+   * Returns a list of the super-properties, i.e. properties inherited from the extending tree of {@code iface}.
+   * @param env the environment, must not be null
+   * @param iface the @Immu/@SuperImmu interface for which to recursively find the properties, must not be null
+   * @return the list of properties, in order from the most super interface to the provided one
+   */
   private List<ImmuProperty> superProperties(ProcessingEnvironment env, TypeMirror iface) {
     final LinkedList<ImmuProperty> properties = new LinkedList<>();
 
     final Element ifaceElement = env.getTypeUtils().asElement(iface);
-
-    for (Element element : ifaceElement.getEnclosedElements()) {
-      if (ElementKind.METHOD.equals(element.getKind())) {
-        properties.add(ImmuProperty.from(element));
-      }
-    }
 
     final TypeElement typeElement = (TypeElement) ifaceElement;
 
@@ -94,33 +91,50 @@ public class ImmuObjectElement extends ImmuElement {
       properties.addAll(superProperties(env, mirror));
     }
 
+    for (Element element : ifaceElement.getEnclosedElements()) {
+      if (ElementKind.METHOD.equals(element.getKind())) {
+        properties.add(ImmuProperty.from(element));
+      }
+    }
+
     return properties;
   }
 
+  /**
+   * Returns the type element.
+   * @return the element, never null
+   */
   public TypeElement typeElement() {
     return (TypeElement) element;
   }
 
-  public boolean checkSuperInterface(ProcessingEnvironment env, TypeMirror iface) {
+  /**
+   * Recursively check the superinterfaces of the provided interface.
+   * @param env the environment, must not be null
+   * @param extendingIface the interface that extends {@code iface}, must not be null
+   * @param iface the interface to check, must not be null
+   * @return a list of all the errors, never null
+   */
+  public static List<String> checkSuperInterface(ProcessingEnvironment env, TypeMirror extendingIface, TypeMirror iface) {
+    final Element extendingIFaceElement = env.getTypeUtils().asElement(extendingIface);
     final Element ifaceElement = env.getTypeUtils().asElement(iface);
 
     if (null != ifaceElement.getAnnotation(SuperImmu.class)) {
       // interface is a @SuperImmu, therefore it will be checked soon (or was already checked)
-      return true;
+      return Collections.emptyList();
     }
 
     if (null != ifaceElement.getAnnotation(Immu.class)) {
       // interface already has an @Immu annotation, therefore will be checked soon (or was already checked)
       // also, this means that we can extend the superinterface's properties
-      return true;
+      return Collections.emptyList();
     }
 
-    boolean isValid = true;
+    final List<String> errors = new LinkedList<>();
 
     for (Element enclosedElement : ifaceElement.getEnclosedElements()) {
       if (ElementKind.METHOD.equals(enclosedElement.getKind())) {
-        isValid = false;
-        error(env, "@Immu interfaces may only extend non-@Immu or non-@SuperImmu interfaces without methods; " + ifaceElement.getSimpleName() + " has at least one method");
+        errors.addAll(ImmuValidationMessages.nonImmuInterfaceHasMethod(extendingIFaceElement, ifaceElement, enclosedElement));
       }
     }
 
@@ -129,9 +143,9 @@ public class ImmuObjectElement extends ImmuElement {
     final List<? extends TypeMirror> superInterfaces = typeElement.getInterfaces();
 
     for (TypeMirror superIface : superInterfaces) {
-      isValid = checkSuperInterface(env, superIface) && isValid;
+      errors.addAll(checkSuperInterface(env, iface, superIface));
     }
 
-    return isValid;
+    return errors;
   }
 }
