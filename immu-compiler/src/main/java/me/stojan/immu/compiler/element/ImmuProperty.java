@@ -1,6 +1,6 @@
 package me.stojan.immu.compiler.element;
 
-import me.stojan.immu.annotation.NonNull;
+import me.stojan.immu.annotation.Required;
 import me.stojan.immu.compiler.element.predicate.ImmuPredicate;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -87,10 +87,10 @@ public class ImmuProperty extends ImmuElement {
   }
 
   /**
-   * Checks if the property is marked as {@link @NonNull}.
-   * @return if it is marked as {@link @NonNull}
+   * Checks if the property is marked as {@link @Required}.
+   * @return if it is marked as {@link @Required}
    */
-  public boolean isNonNull() {
-    return null != element.getAnnotation(NonNull.class);
+  public boolean isRequired() {
+    return null != element.getAnnotation(Required.class);
   }
 }

@@ -12,7 +12,7 @@ one thing well.
 
 ## How?
 
-OK, so Immu has three annotations `@Immu`, `@SuperImmu` and `@NonNull`. You
+OK, so Immu has three annotations `@Immu`, `@SuperImmu` and `@Required`. You
 can use these to describe a very strict immutable object structure.
 
 `@Immu` and `@SuperImmu` can only be used on interfaces that only have methods
@@ -32,6 +32,12 @@ empty. The processor will let you know about this, too.
 interfaces to encapsulate data that is shared between other `@Immu`-s, but
 that data is not necessarily standalone.
 
+`@Required` is for properties only. If a property is annotated with
+`@Required` it will have to be provided in builders and constructors. For
+declared types (things that are objects, basically) this means that they
+must not be `null`. For primitive types, it only applies for builders:
+you will have to provide a value in the builder creator.
+
 That's basically it. No bullshit.
 
 ### Example
@@ -39,7 +45,7 @@ That's basically it. No bullshit.
 ```java
 @SuperImmu
 public interface Animal {
-    @NonNull String name();
+    @Required String name();
     int eyes();
 }
 
@@ -55,15 +61,17 @@ public interface Tweeter extends LeggedAnimal {
 
 @Immu
 public interface Octopus extends LeggedAnimal {
-    @NonNull String favoriteOcean();
+    @Required String favoriteOcean();
 }
 
 ...
 
 Octopus octocat = OctopusBuilder
+    // this is a checked creator
     .create(/* name: */ "Octocat", /* favoriteOcean: */ "Pacific Ocean")
     .eyes(2)
     .legs(8)
+    .favoriteOcean("Atlantic Ocean")
     .build();
 
 Tweeter chirpy = TweeterBuilder

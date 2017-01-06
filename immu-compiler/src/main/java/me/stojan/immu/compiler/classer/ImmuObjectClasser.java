@@ -3,6 +3,7 @@ package me.stojan.immu.compiler.classer;
 import com.squareup.javapoet.*;
 import me.stojan.immu.compiler.element.ImmuObjectElement;
 import me.stojan.immu.compiler.element.ImmuProperty;
+import me.stojan.immu.exception.ValueNotProvidedException;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
@@ -61,11 +62,15 @@ public class ImmuObjectClasser extends ImmuClasser {
         .map((p) -> ParameterSpec.builder(TypeName.get(p.returnType()), p.name().toString()).build())
         .collect(Collectors.toList());
 
-    final CodeBlock constructorNonNullChecker = properties
+    final CodeBlock constructorDeclaredRequiredChecker = properties
         .stream()
-        .filter(ImmuProperty::isNonNull)
+        .filter((p) -> !p.isPrimitive())
+        .filter(ImmuProperty::isRequired)
         .map((p) -> p.name().toString())
-        .reduce(CodeBlock.builder(), (cb, s) -> cb.beginControlFlow("if (null == " + s + ")").addStatement("throw new $T($S)", IllegalArgumentException.class, "Argument" + s + " must not be null").endControlFlow(), (cba, cbb) -> cba)
+        .reduce(CodeBlock.builder(), (cb, name) -> cb
+            .beginControlFlow("if (null == " + name + ")")
+            .addStatement("throw new $T($S)", ValueNotProvidedException.class, name)
+            .endControlFlow(), (cba, cbb) -> cba)
         .build();
 
     final CodeBlock constructorInitializer = properties
@@ -77,7 +82,7 @@ public class ImmuObjectClasser extends ImmuClasser {
 
     final MethodSpec constructor = MethodSpec.constructorBuilder()
         .addParameters(parameters)
-        .addCode(constructorNonNullChecker)
+        .addCode(constructorDeclaredRequiredChecker)
         .addCode(constructorInitializer)
         .build();
 
@@ -172,7 +177,7 @@ public class ImmuObjectClasser extends ImmuClasser {
       final String name = property.name().toString();
       final String hashCodeInvocation = hashCodeInvocation(name, property.returnType().getKind());
 
-      if (property.isPrimitive() || property.isNonNull()) {
+      if (property.isPrimitive() || property.isRequired()) {
         builder.addStatement("hashCode ^= " + hashCodeInvocation);
       } else {
         builder.addStatement("hashCode ^= ( null == this." + name + " ? 0 : " + hashCodeInvocation + " )");
@@ -260,7 +265,7 @@ public class ImmuObjectClasser extends ImmuClasser {
         break;
     }
 
-    if (!property.isNonNull() && !property.isPrimitive()) {
+    if (!property.isRequired() && !property.isPrimitive()) {
       return "(" + a + " == " + b + ") || (null != " + a + " && null != " + b + " && " + a + ".equals(" + b + "))";
     }
 

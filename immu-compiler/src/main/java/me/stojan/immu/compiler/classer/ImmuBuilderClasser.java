@@ -3,6 +3,7 @@ package me.stojan.immu.compiler.classer;
 import com.squareup.javapoet.*;
 import me.stojan.immu.compiler.element.ImmuObjectElement;
 import me.stojan.immu.compiler.element.ImmuProperty;
+import me.stojan.immu.exception.ValueNotProvidedException;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
@@ -108,17 +109,17 @@ public class ImmuBuilderClasser extends ImmuClasser {
         .addCode(copierBlockBuilder.build())
         .build();
 
-    final List<ImmuProperty> nonNullProperties = properties
+    final List<ImmuProperty> requiredProperties = properties
         .stream()
-        .filter(ImmuProperty::isNonNull)
+        .filter(ImmuProperty::isRequired)
         .collect(Collectors.toList());
 
     final MethodSpec creatorStatic = MethodSpec.methodBuilder("create")
         .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-        .addParameters(nonNullProperties.stream()
+        .addParameters(requiredProperties.stream()
           .map((p) -> ParameterSpec.builder(TypeName.get(p.returnType()), p.name().toString()).build())
           .collect(Collectors.toList()))
-        .addCode(creatorCodeBlock(builderClass, nonNullProperties))
+        .addCode(creatorCodeBlock(builderClass, requiredProperties))
         .returns(builderClass)
         .build();
 
@@ -142,9 +143,9 @@ public class ImmuBuilderClasser extends ImmuClasser {
 
     final CodeBlock.Builder builder = CodeBlock.builder();
 
-    if (property.isNonNull()) {
+    if (property.isRequired()) {
       builder.beginControlFlow("if (null == " + name + ")");
-      builder.addStatement("throw new $T($S)", IllegalArgumentException.class, "Argument " + name + " must not be null");
+      builder.addStatement("throw new $T($S)", ValueNotProvidedException.class, name);
       builder.endControlFlow();
     }
 
@@ -162,13 +163,16 @@ public class ImmuBuilderClasser extends ImmuClasser {
       return builder.build();
     }
 
-    properties.forEach((p) -> {
-      final String name = p.name().toString();
+    properties
+        .stream()
+        .filter((p) -> !p.isPrimitive())
+        .forEach((p) -> {
+          final String name = p.name().toString();
 
-      builder.beginControlFlow("if (null == " + name + ")");
-      builder.addStatement("throw new $T($S)", IllegalArgumentException.class, "Argument " + name + " must not be null");
-      builder.endControlFlow();
-    });
+          builder.beginControlFlow("if (null == " + name + ")");
+          builder.addStatement("throw new $T($S)", ValueNotProvidedException.class, name);
+          builder.endControlFlow();
+        });
 
     builder.addStatement("final $T builder = new $T()", builderClass, builderClass);
 
