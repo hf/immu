@@ -1,11 +1,9 @@
-package me.stojan.immu.compiler.writer;
+package me.stojan.immu.compiler.classer;
 
 import com.squareup.javapoet.*;
-import com.sun.org.apache.xpath.internal.operations.Mod;
 import me.stojan.immu.compiler.element.ImmuObjectElement;
 import me.stojan.immu.compiler.element.ImmuProperty;
 
-import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
 import java.util.ArrayList;

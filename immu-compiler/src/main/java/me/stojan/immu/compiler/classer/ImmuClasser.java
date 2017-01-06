@@ -1,14 +1,10 @@
-package me.stojan.immu.compiler.writer;
+package me.stojan.immu.compiler.classer;
 
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 import me.stojan.immu.compiler.element.ImmuObjectElement;
 
-import javax.annotation.processing.Filer;
-import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
-import java.io.IOException;
 
 /**
  * Created by vuk on 05/01/17.
