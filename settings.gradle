@@ -1,0 +1,6 @@
+rootProject.name = 'immu'
+
+include 'immu-compiler'
+include 'immu-annotations'
+include 'immu-compiler-tests'
+
