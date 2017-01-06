@@ -1,4 +1,4 @@
-package me.stojan.immu.annotation;
+package immu;
 
 /**
  * To be used on interfaces that are super-immutable.

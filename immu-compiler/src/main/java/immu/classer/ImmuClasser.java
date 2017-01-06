@@ -1,8 +1,8 @@
-package me.stojan.immu.compiler.classer;
+package immu.classer;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeSpec;
-import me.stojan.immu.compiler.element.ImmuObjectElement;
+import immu.element.ImmuObjectElement;
 
 import javax.annotation.processing.ProcessingEnvironment;
 

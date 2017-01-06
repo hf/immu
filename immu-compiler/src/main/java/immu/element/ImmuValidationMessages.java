@@ -1,6 +1,6 @@
-package me.stojan.immu.compiler.element;
+package immu.element;
 
-import me.stojan.immu.annotation.SuperImmu;
+import immu.SuperImmu;
 
 import javax.lang.model.element.Element;
 import java.util.Collections;

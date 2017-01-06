@@ -1,6 +1,6 @@
 package me.stojan.immu;
 
-import me.stojan.immu.annotation.Immu;
+import immu.Immu;
 
 import java.util.List;
 

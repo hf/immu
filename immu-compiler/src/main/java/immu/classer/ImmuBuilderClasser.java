@@ -1,9 +1,9 @@
-package me.stojan.immu.compiler.classer;
+package immu.classer;
 
 import com.squareup.javapoet.*;
-import me.stojan.immu.compiler.element.ImmuObjectElement;
-import me.stojan.immu.compiler.element.ImmuProperty;
-import me.stojan.immu.exception.ValueNotProvidedException;
+import immu.element.ImmuObjectElement;
+import immu.element.ImmuProperty;
+import immu.ValueNotProvidedException;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;

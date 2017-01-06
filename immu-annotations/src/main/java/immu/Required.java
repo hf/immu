@@ -1,4 +1,4 @@
-package me.stojan.immu.annotation;
+package immu;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  * <p>
  * This annotation will have no effect if used on an interface. The processor should warn you.
  * <p>
- * If a value has not been provided, then {@link me.stojan.immu.exception.ValueNotProvidedException}
+ * If a value has not been provided, then {@link ValueNotProvidedException}
  * will be thrown either in the constructor of the generated immutable object's implementation,
  * or in the builder.
  */

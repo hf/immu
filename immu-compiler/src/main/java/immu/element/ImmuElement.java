@@ -1,13 +1,11 @@
-package me.stojan.immu.compiler.element;
+package immu.element;
 
-import me.stojan.immu.compiler.element.predicate.ImmuPredicate;
+import immu.element.predicate.ImmuPredicate;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Name;
-import javax.tools.Diagnostic;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 

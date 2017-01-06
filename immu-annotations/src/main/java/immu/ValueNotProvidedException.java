@@ -1,10 +1,12 @@
-package me.stojan.immu.exception;
+package immu;
+
+import immu.Required;
 
 import java.util.Locale;
 
 /**
  * An exception denoting that a value was not provided for a property
- * annotated with {@link me.stojan.immu.annotation.Required}.
+ * annotated with {@link Required}.
  */
 public class ValueNotProvidedException extends RuntimeException {
 

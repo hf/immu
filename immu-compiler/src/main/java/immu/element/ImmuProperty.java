@@ -1,7 +1,7 @@
-package me.stojan.immu.compiler.element;
+package immu.element;
 
-import me.stojan.immu.annotation.Required;
-import me.stojan.immu.compiler.element.predicate.ImmuPredicate;
+import immu.Required;
+import immu.element.predicate.ImmuPredicate;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;

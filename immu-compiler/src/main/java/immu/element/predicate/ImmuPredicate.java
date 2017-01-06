@@ -1,6 +1,6 @@
-package me.stojan.immu.compiler.element.predicate;
+package immu.element.predicate;
 
-import me.stojan.immu.compiler.element.ImmuElement;
+import immu.element.ImmuElement;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import java.util.ArrayList;

@@ -1,13 +1,13 @@
-package me.stojan.immu.compiler;
+package immu;
 
 import com.squareup.javapoet.JavaFile;
-import me.stojan.immu.annotation.Immu;
-import me.stojan.immu.annotation.SuperImmu;
-import me.stojan.immu.compiler.element.ImmuElement;
-import me.stojan.immu.compiler.element.ImmuObjectElement;
-import me.stojan.immu.compiler.classer.ImmuBuilderClasser;
-import me.stojan.immu.compiler.classer.ImmuObjectClasser;
-import me.stojan.immu.compiler.element.predicate.ImmuPredicate;
+import immu.Immu;
+import immu.SuperImmu;
+import immu.element.ImmuElement;
+import immu.element.ImmuObjectElement;
+import immu.classer.ImmuBuilderClasser;
+import immu.classer.ImmuObjectClasser;
+import immu.element.predicate.ImmuPredicate;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
