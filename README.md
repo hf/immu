@@ -1,5 +1,8 @@
 # Immu
 
+[![Build Status](https://travis-ci.org/hf/immu.svg?branch=master)](https://travis-ci.org/hf/immu) [![codecov](https://codecov.io/gh/hf/immu/branch/master/graph/badge.svg)](https://codecov.io/gh/hf/immu)
+
+
 Immu is a small annotation processor that will allow you to never write
 another builder and immutable object by hand.
 
@@ -86,6 +89,17 @@ Octopus octocatsBro = OctopusBuilder
     .name("Octocat's Bro")
     .build();
 ```
+
+### Building, Contributing
+
+Building requires JDK8. It is recommended you use versions *above* 
+`1.8.0_31` since there have been issues with hanging compiler tests including
+troubles with inferring types in the code that uses the Java 8 stream APIs.
+
+The tests exercise the full processor, and not every method is directly tested 
+since that would be impossible without forking `javac`. Therefore, the 
+processor uses the excellent `com.google.testing.compile:compile-testing` 
+library from Google.
 
 # License
 

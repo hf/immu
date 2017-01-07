@@ -20,7 +20,7 @@ public class ImmuObjectElement extends ImmuElement {
   /** Checks that the annotated object is an interface. */
   public static final ImmuPredicate<ImmuObjectElement> OBJECT_IS_INTERFACE =
       (env, element) -> {
-        final boolean notInterface;
+        boolean notInterface;
         switch (element.typeElement().getKind()) {
           case INTERFACE:
             notInterface = false;

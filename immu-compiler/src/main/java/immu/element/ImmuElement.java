@@ -41,7 +41,7 @@ public abstract class ImmuElement {
     return element.getEnclosedElements()
         .stream()
         .filter(element -> kind.equals(element.getKind()))
-        .collect(Collectors.toList());
+        .collect(Collectors.<Element>toList());
   }
 
   public final Name name() {
