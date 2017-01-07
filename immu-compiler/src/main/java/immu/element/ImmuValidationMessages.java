@@ -10,21 +10,12 @@ import java.util.Locale;
 /**
  * Contains all validation messages.
  */
-public class ImmuValidationMessages {
+public final class ImmuValidationMessages {
 
   ImmuValidationMessages() {
     throw new UnsupportedOperationException();
   }
 
-  /**
-   * Create a singleton validation error message from validation result.
-   * @param applies if the validation applied
-   * @param messages the message if the validation did not apply
-   * @return the list of error messages
-   */
-  public static List<String> fromPredicateResult(boolean applies, List<String> messages) {
-    return applies ? Collections.emptyList() : messages;
-  }
 
   private static String formatInterface(ImmuProperty property, String format, Object... arguments) {
     return formatInterface(property.element().getEnclosingElement(), format, arguments);
@@ -74,15 +65,7 @@ public class ImmuValidationMessages {
     return Collections.singletonList(String.format((Locale) null, "%s extends %s, a non-@Immu interface with a method %s#%s(...); @Immu or @SuperImmu interfaces may only extend non-@Immu interfaces without methods", extendingIface.getSimpleName(), iface.getSimpleName(), iface.getSimpleName(), method.getSimpleName()));
   }
 
-  public static List<String> immuHasRequired(ImmuObjectElement element) {
-    final String immuName;
-
-    if (null != element.element().getAnnotation(SuperImmu.class)) {
-      immuName = "@SuperImmu";
-    } else {
-      immuName = "@Immu";
-    }
-
-    return Collections.singletonList(String.format((Locale) null, "%s interface %s is annotated as @Required but it will have no effect (it is only valid for properties)", immuName, element.name()));
+  public static List<String> immuAndSuperImmu(ImmuObjectElement element) {
+    return Collections.singletonList(String.format((Locale) null, "%s is annotated with @Immu and @SuperImmu at the same time, consider using one of them", element.name()));
   }
 }

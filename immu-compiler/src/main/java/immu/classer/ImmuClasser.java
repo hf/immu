@@ -5,6 +5,7 @@ import com.squareup.javapoet.TypeSpec;
 import immu.element.ImmuObjectElement;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import java.util.stream.Collectors;
 
 /**
  * A classer generates classes.
@@ -43,7 +44,10 @@ public abstract class ImmuClasser {
    * @return the name, never null
    */
   public final ClassName objectClass() {
-    return className.peerClass("Immutable" + className.simpleName());
+    return ClassName.get(className.packageName(),
+        "Immutable" + className.simpleNames()
+          .stream()
+          .collect(Collectors.joining()));
   }
 
   /**
@@ -51,7 +55,10 @@ public abstract class ImmuClasser {
    * @return the name, never null
    */
   public final ClassName builderClass() {
-    return className.peerClass(className.simpleName() + "Builder");
+    return ClassName.get(className.packageName(),
+        className.simpleNames()
+            .stream()
+            .collect(Collectors.joining()) + "Builder");
   }
 }
 

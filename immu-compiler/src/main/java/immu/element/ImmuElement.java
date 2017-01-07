@@ -47,4 +47,19 @@ public abstract class ImmuElement {
   public final Name name() {
     return element.getSimpleName();
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    ImmuElement that = (ImmuElement) o;
+
+    return element.equals(that.element);
+  }
+
+  @Override
+  public int hashCode() {
+    return element.hashCode();
+  }
 }

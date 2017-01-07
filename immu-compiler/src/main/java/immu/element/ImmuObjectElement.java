@@ -1,12 +1,13 @@
 package immu.element;
 
 import immu.Immu;
-import immu.Required;
 import immu.SuperImmu;
 import immu.element.predicate.ImmuPredicate;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,7 +20,16 @@ public class ImmuObjectElement extends ImmuElement {
   /** Checks that the annotated object is an interface. */
   public static final ImmuPredicate<ImmuObjectElement> OBJECT_IS_INTERFACE =
       (env, element) -> {
-        final boolean notInterface = !element.typeElement().getKind().isInterface();
+        final boolean notInterface;
+        switch (element.typeElement().getKind()) {
+          case INTERFACE:
+            notInterface = false;
+            break;
+
+          default:
+            notInterface = true;
+        }
+
         return notInterface ? ImmuPredicate.Result.error(ImmuValidationMessages.elementNotInterface(element)) : ImmuPredicate.Result.success();
       };
 
@@ -41,17 +51,18 @@ public class ImmuObjectElement extends ImmuElement {
         return ImmuPredicate.Result.error(errors);
       };
 
-  /** Checks that the interface is not annotated with {@link Required}. */
-  public static final ImmuPredicate<ImmuObjectElement> REQUIRED_INTERFACE =
+  public static final ImmuPredicate<ImmuObjectElement> IMMU_AND_SUPER_IMMU =
       (env, element) -> {
-        final boolean hasRequired = null != element.element().getAnnotation(Required.class);
-        return hasRequired ? ImmuPredicate.Result.warning(ImmuValidationMessages.immuHasRequired(element)) : ImmuPredicate.Result.success();
+        final boolean bothAnnotations = null != element.element().getAnnotation(Immu.class)
+            && null != element.element().getAnnotation(SuperImmu.class);
+
+        return bothAnnotations ? ImmuPredicate.Result.warning(ImmuValidationMessages.immuAndSuperImmu(element)) : ImmuPredicate.Result.success();
       };
 
   public static final List<ImmuPredicate<ImmuObjectElement>> PREDICATES = Arrays.asList(
       OBJECT_IS_INTERFACE,
       EMPTY_SUPERINTERFACES,
-      REQUIRED_INTERFACE);
+      IMMU_AND_SUPER_IMMU);
 
   /**
    * Create a new object element from the provided element.
@@ -68,7 +79,21 @@ public class ImmuObjectElement extends ImmuElement {
 
   @Override
   public List<ImmuPredicate.Result> validate(ProcessingEnvironment environment) {
-    return runPredicates(environment, this, PREDICATES);
+    final List<ImmuPredicate.Result> results = new ArrayList<>();
+
+    results.addAll(runPredicates(environment, this, PREDICATES));
+
+    superProperties(environment)
+        .stream()
+        .map((p) -> p.validate(environment))
+        .forEach(results::addAll);
+
+    properties()
+        .stream()
+        .map((p) -> p.validate(environment))
+        .forEach(results::addAll);
+
+    return results;
   }
 
   /**
@@ -104,7 +129,9 @@ public class ImmuObjectElement extends ImmuElement {
     final List<ImmuProperty> properties = new LinkedList<>();
 
     for (TypeMirror typeMirror : interfaces) {
-      properties.addAll(superProperties(env, typeMirror));
+      if (ElementKind.INTERFACE.equals(env.getTypeUtils().asElement(typeMirror).getKind())) {
+        properties.addAll(superProperties(env, typeMirror));
+      }
     }
 
     return properties;

@@ -1,5 +1,10 @@
 package immu;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
 /**
  * To be used on interfaces that are super-immutable.
  * <p>
@@ -8,5 +13,7 @@ package immu;
  *
  * @see Immu
  */
+@Retention(RetentionPolicy.CLASS)
+@Target({ ElementType.TYPE })
 public @interface SuperImmu {
 }

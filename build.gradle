@@ -1,0 +1,4 @@
+apply plugin: 'java'
+
+group 'me.stojan.immu'
+version '0.1-SNAPSHOT'

@@ -1,14 +1,15 @@
 package immu.classer;
 
 import com.squareup.javapoet.*;
+import immu.ValueNotProvidedException;
+import immu.element.ImmuElement;
 import immu.element.ImmuObjectElement;
 import immu.element.ImmuProperty;
-import immu.ValueNotProvidedException;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.Name;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,14 +39,6 @@ public class ImmuBuilderClasser extends ImmuClasser {
     final ClassName objectClass = objectClass();
     final ClassName builderClass = builderClass();
 
-    final Modifier[] modifiers;
-
-    if (null != builderClass.enclosingClassName()) {
-      modifiers = new Modifier[] { Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL };
-    } else {
-      modifiers = new Modifier[] { Modifier.PUBLIC, Modifier.FINAL };
-    }
-
     final List<ImmuProperty> declaredProperties = element.properties();
     final List<ImmuProperty> inheritedProperties = element.superProperties(env);
 
@@ -69,19 +62,11 @@ public class ImmuBuilderClasser extends ImmuClasser {
                       .build())
         .collect(Collectors.toList());
 
-    final StringBuilder builder = new StringBuilder();
-    final Iterator<ImmuProperty> iterator = properties.iterator();
-
-    if (iterator.hasNext()) {
-      builder.append(iterator.next().name().toString());
-    }
-
-    while (iterator.hasNext()) {
-      builder.append(", ");
-      builder.append(iterator.next().name().toString());
-    }
-
-    final String statementList = builder.toString();
+    final String statementList = properties
+        .stream()
+        .map(ImmuElement::name)
+        .map(Name::toString)
+        .collect(Collectors.joining(", "));
 
     final MethodSpec buildMethod = MethodSpec.methodBuilder("build")
         .addModifiers(Modifier.PUBLIC)
@@ -127,8 +112,14 @@ public class ImmuBuilderClasser extends ImmuClasser {
         .addModifiers(Modifier.PRIVATE)
         .build();
 
+    final List<TypeVariableName> typeVariables = element.typeElement().getTypeParameters()
+        .stream()
+        .map(TypeVariableName::get)
+        .collect(Collectors.toList());
+
     return TypeSpec.classBuilder(builderClass)
-        .addModifiers(modifiers)
+        .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+        .addTypeVariables(typeVariables)
         .addFields(fields)
         .addMethod(creatorStatic)
         .addMethod(copierStatic)

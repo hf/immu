@@ -8,7 +8,8 @@ import javax.lang.model.element.Element;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * An @Immu property. This is typically a method without parameters, type variables or exceptions.
@@ -39,7 +40,7 @@ public class ImmuProperty extends ImmuElement {
   /** Checks that the property does not return void. */
   public static final ImmuPredicate<ImmuProperty> NO_RETURN_VOID =
       (env, prop) -> {
-        final boolean isVoid = TypeKind.VOID.equals(prop.sourceType().getKind());
+        final boolean isVoid = TypeKind.VOID.equals(prop.returnType().getKind());
         return isVoid ? ImmuPredicate.Result.error(ImmuValidationMessages.propertyReturnsVoid(prop)) : ImmuPredicate.Result.success();
       };
 
@@ -56,13 +57,7 @@ public class ImmuProperty extends ImmuElement {
    * @return the property, never null
    */
   public static ImmuProperty from(Element element) {
-    switch (element.getKind()) {
-      case METHOD:
         return new ImmuProperty(element);
-
-      default:
-        throw new IllegalArgumentException("Argument element must be a method");
-    }
   }
 
   ImmuProperty(Element method) {

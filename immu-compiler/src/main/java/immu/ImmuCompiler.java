@@ -1,17 +1,21 @@
 package immu;
 
 import com.squareup.javapoet.JavaFile;
-import immu.Immu;
-import immu.SuperImmu;
-import immu.element.ImmuElement;
-import immu.element.ImmuObjectElement;
 import immu.classer.ImmuBuilderClasser;
 import immu.classer.ImmuObjectClasser;
+import immu.element.ImmuElement;
+import immu.element.ImmuObjectElement;
 import immu.element.predicate.ImmuPredicate;
 
-import javax.annotation.processing.*;
+import javax.annotation.processing.Completion;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.annotation.processing.Processor;
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.*;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import java.io.IOException;
 import java.util.*;
@@ -53,12 +57,14 @@ public class ImmuCompiler implements Processor {
 
   @Override
   public Set<String> getSupportedAnnotationTypes() {
-    return Collections.singleton(Immu.class.getName());
+    return Stream.of(Immu.class, SuperImmu.class)
+        .map(Class::getName)
+        .collect(Collectors.toSet());
   }
 
   @Override
   public SourceVersion getSupportedSourceVersion() {
-    return SourceVersion.RELEASE_7;
+    return SourceVersion.latestSupported();
   }
 
   @Override
@@ -91,15 +97,27 @@ public class ImmuCompiler implements Processor {
         .collect(Collectors.toList());
 
     validationResults.forEach((validation) -> {
-      validation.results.forEach((result) -> {
-        result.warnings.forEach((warning) -> {
-          env.getMessager().printMessage(Diagnostic.Kind.WARNING, warning, validation.element.element());
-        });
+      final List<String> warnings = new ArrayList<>();
+      final List<String> errors = new ArrayList<>();
 
-        result.errors.forEach((error) -> {
-          env.getMessager().printMessage(Diagnostic.Kind.ERROR, error, validation.element.element());
-        });
-      });
+      validation.results.forEach((result) -> warnings.addAll(result.warnings));
+      validation.results.forEach((result) -> errors.addAll(result.errors));
+
+      if (!warnings.isEmpty()) {
+        final String bigWarning = warnings
+            .stream()
+            .collect(Collectors.joining("\n"));
+
+        env.getMessager().printMessage(Diagnostic.Kind.WARNING, bigWarning, validation.element.element());
+      }
+
+      if (!errors.isEmpty()) {
+        final String bigError =errors
+            .stream()
+            .collect(Collectors.joining("\n"));
+
+        env.getMessager().printMessage(Diagnostic.Kind.ERROR, bigError, validation.element.element());
+      }
     });
 
     final boolean allValid = validationResults
@@ -123,13 +141,7 @@ public class ImmuCompiler implements Processor {
 
     Stream.concat(objectClassers, builderClassers)
         .collect(Collectors.toList())
-        .forEach((file) -> {
-          try {
-            file.writeTo(env.getFiler());
-          } catch (IOException e) {
-            env.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
-          }
-        });
+        .forEach(this::writeSource);
 
     return true;
   }
@@ -137,5 +149,13 @@ public class ImmuCompiler implements Processor {
   @Override
   public Iterable<? extends Completion> getCompletions(Element element, AnnotationMirror annotationMirror, ExecutableElement executableElement, String s) {
     return Collections.emptyList();
+  }
+
+  void writeSource(JavaFile file) {
+    try {
+      file.writeTo(env.getFiler());
+    } catch (IOException e) {
+      env.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
+    }
   }
 }

@@ -1,14 +1,17 @@
 package immu.classer;
 
 import com.squareup.javapoet.*;
+import immu.ValueNotProvidedException;
 import immu.element.ImmuObjectElement;
 import immu.element.ImmuProperty;
-import immu.ValueNotProvidedException;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeKind;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -35,14 +38,6 @@ public class ImmuObjectClasser extends ImmuClasser {
   public TypeSpec generate(ProcessingEnvironment env) {
     final ClassName immuClass = className();
     final ClassName objectClass = objectClass();
-
-    final Modifier[] modifiers;
-
-    if (null != objectClass.enclosingClassName()) {
-      modifiers = new Modifier[] { Modifier.STATIC, Modifier.FINAL };
-    } else {
-      modifiers = new Modifier[] { Modifier.FINAL };
-    }
 
     final List<ImmuProperty> declaredProperties = element.properties();
     final List<ImmuProperty> inheritedProperties = element.superProperties(env);
@@ -120,8 +115,14 @@ public class ImmuObjectClasser extends ImmuClasser {
                       .build())
         .collect(Collectors.toList());
 
+    final List<TypeVariableName> typeVariables = element.typeElement().getTypeParameters()
+        .stream()
+        .map(TypeVariableName::get)
+        .collect(Collectors.toList());
+
     return TypeSpec.classBuilder(objectClass)
-        .addModifiers(modifiers)
+        .addModifiers(Modifier.FINAL)
+        .addTypeVariables(typeVariables)
         .addSuperinterface(immuClass)
         .addFields(fields)
         .addMethod(constructor)
@@ -206,8 +207,17 @@ public class ImmuObjectClasser extends ImmuClasser {
       case CHAR:
         return "((int) " + value + ")";
 
+      case BOOLEAN:
+        return "(" + value + "? 1 : 0)";
+
       case LONG:
         return "((int) (" + value + " >> 32) ^ (" + value + "))";
+
+      case FLOAT:
+        return "Float.floatToIntBits(" + value + ")";
+
+      case DOUBLE:
+        return "((int) (Double.doubleToLongBits(" + value + ") >> 32) ^ Double.doubleToLongBits(" + value + "))";
 
       default:
         return value + ".hashCode()";
