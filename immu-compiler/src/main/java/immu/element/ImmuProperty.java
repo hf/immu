@@ -94,8 +94,8 @@ public class ImmuProperty extends ImmuElement {
   }
 
   /**
-   * Checks if the property is marked as {@link @Required}.
-   * @return if it is marked as {@link @Required}
+   * Checks if the property is marked as {@link Required}.
+   * @return if it is marked as {@link Required}
    */
   public boolean isRequired() {
     return null != element.getAnnotation(Required.class);

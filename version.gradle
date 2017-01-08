@@ -1,0 +1,20 @@
+def gitVersion = { ->
+    def stdout = new ByteArrayOutputStream()
+    def exitValue = exec {
+        commandLine 'git', 'describe', '--tags'
+        ignoreExitValue = true
+        standardOutput = stdout
+    }.exitValue
+
+    if (0 != exitValue) {
+        return 'v0.0.0'
+    }
+
+    return stdout.toString().trim()
+}
+
+ext.GIT_VERSION = gitVersion()
+ext.VERSION = GIT_VERSION.replaceFirst(/^v/, '')
+
+System.out.println "VERSION: ${VERSION}"
+System.out.println "GIT_VERSION: ${GIT_VERSION}"

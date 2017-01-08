@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * To be used on interfaces that are immutable objects.
  * <p>
- * These interfaces are only allowed to have methods of the form: {@tt ReturnType name()}.
+ * These interfaces are only allowed to have methods of the form: {@code ReturnType name()}
  * The methods must not use generic type variables or throw any exceptions.
  * <p>
  * An interface annotated by this annotation may extend other interfaces that have either

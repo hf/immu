@@ -1,7 +1,7 @@
 # Immu
 
 [![Build Status](https://travis-ci.org/hf/immu.svg?branch=master)](https://travis-ci.org/hf/immu) [![codecov](https://codecov.io/gh/hf/immu/branch/master/graph/badge.svg)](https://codecov.io/gh/hf/immu)
-
+[ ![immu-compiler](https://api.bintray.com/packages/stojan/java/immu-compiler/images/download.svg) ](https://bintray.com/stojan/java/immu-compiler/_latestVersion) [ ![immu-annotations](https://api.bintray.com/packages/stojan/java/immu-annotations/images/download.svg) ](https://bintray.com/stojan/java/immu-annotations/_latestVersion)
 
 Immu is a small annotation processor that will allow you to never write
 another builder and immutable object by hand.

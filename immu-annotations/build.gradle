@@ -1,13 +1,29 @@
-group parent.group
-version parent.version
+plugins {
+    id 'com.jfrog.bintray' version '1.7.3'
+}
 
 apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'jacoco'
+
+group parent.group
+version parent.version
 
 sourceCompatibility = 1.7
 
 repositories {
     jcenter()
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
 }
 
 dependencies {
@@ -20,3 +36,64 @@ jacocoTestReport {
         html.enabled true
     }
 }
+
+def NAME = 'immu-annotations'
+def DESC = 'Immu annotations and runtime classes'
+
+publishing {
+    publications {
+        AnnotationsPublication(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+            groupId 'me.stojan.immu'
+            artifactId 'immu-annotations'
+            pom.withXml {
+                asNode().appendNode('name', NAME)
+                asNode().appendNode('description', DESC)
+                asNode().appendNode('url', 'https://github.com/hf/immu')
+                asNode().appendNode('inceptionYear', '2017')
+                def licenses = asNode().appendNode('licenses')
+                def license = licenses.appendNode('license')
+                license.appendNode('name', 'MIT')
+                license.appendNode('url', 'https://opensource.org/licenses/MIT')
+                license.appendNode('distribution', 'repo')
+                def developers = asNode().appendNode('developers')
+                def developer = developers.appendNode('developer')
+                developer.appendNode('id', 'hf')
+                developer.appendNode('name', 'Stojan Dimitrovski')
+                def roles = developer.appendNode('roles')
+                roles.appendNode('role', 'developer')
+                roles.appendNode('role', 'architect')
+            }
+
+        }
+    }
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key  = System.getenv('BINTRAY_KEY')
+    publications = ['AnnotationsPublication']
+
+    pkg {
+        repo = 'java'
+        name = NAME
+        desc = DESC
+        licenses = ['MIT']
+        vcsUrl = 'https://github.com/hf/immu.git'
+        websiteUrl = 'https://github.com/hf/immu'
+        issueTrackerUrl = 'https://github.com/hf/immu/issues'
+        publicDownloadNumbers = true
+
+        githubRepo = 'hf/immu'
+        githubReleaseNotesFile = 'README.md'
+
+        version {
+            name = VERSION
+            vcsTag = GIT_VERSION
+            released = new Date()
+        }
+    }
+}
+

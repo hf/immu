@@ -9,7 +9,9 @@ jdk:
 before_script:
   - chmod +x gradlew
 script:
+  - ./gradlew javadoc
   - ./gradlew check
   - ./gradlew jacocoTestReport
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - ./ci/release.sh
