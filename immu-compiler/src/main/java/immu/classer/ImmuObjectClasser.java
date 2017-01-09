@@ -142,25 +142,42 @@ public class ImmuObjectClasser extends ImmuClasser {
     if (properties.isEmpty()) {
       builder.addStatement("builder.append($S)", "{  }");
     } else {
-      final Iterator<ImmuProperty> iterator = properties.iterator();
+      builder.addStatement("builder.append($S)", "{ ");
+      toStringInvocation(builder, properties.get(0));
 
-      final String firstName = iterator.next().name().toString();
+      properties
+          .stream()
+          .skip(1)
+          .forEach((p) -> {
+            builder.addStatement("builder.append($S)", ", ");
+            toStringInvocation(builder, p);
+          });
 
-      builder.addStatement("builder.append($S)", firstName + " = <");
-      builder.addStatement("builder.append(this." + firstName + ")");
-
-      while (iterator.hasNext()) {
-        final String name = iterator.next().name().toString();
-
-        builder.addStatement("builder.append($S)", "> , " + name + " = <");
-        builder.addStatement("builder.append(this." + name + ")");
-      }
-
-      builder.addStatement("builder.append($S)", "> }");
+      builder.addStatement("builder.append($S)", " }");
     }
 
     return builder.addStatement("return builder.toString()")
         .build();
+  }
+
+  private void toStringInvocation(CodeBlock.Builder builder, ImmuProperty p) {
+    final String name = p.name().toString();
+
+    builder.addStatement("builder.append($S)", name + " = ");
+
+    if (p.isRequired() || p.isPrimitive()) {
+      builder.addStatement("builder.append('<')");
+      builder.addStatement("builder.append(this." + name + ")");
+      builder.addStatement("builder.append('>')");
+    } else {
+      builder.beginControlFlow("if (null != this." + name + ")");
+      builder.addStatement("builder.append('<')");
+      builder.addStatement("builder.append(this." + name + ")");
+      builder.addStatement("builder.append('>')");
+      builder.nextControlFlow("else");
+      builder.addStatement("builder.append($S)", "@null");
+      builder.endControlFlow();
+    }
   }
 
   private CodeBlock hashCodeBlock(ClassName immuClass, List<ImmuProperty> properties) {
@@ -175,14 +192,7 @@ public class ImmuObjectClasser extends ImmuClasser {
     builder.addStatement("int hashCode = $T.class.hashCode()", immuClass);
 
     for (ImmuProperty property : properties) {
-      final String name = property.name().toString();
-      final String hashCodeInvocation = hashCodeInvocation(name, property.returnType().getKind());
-
-      if (property.isPrimitive() || property.isRequired()) {
-        builder.addStatement("hashCode ^= " + hashCodeInvocation);
-      } else {
-        builder.addStatement("hashCode ^= ( null == this." + name + " ? 0 : " + hashCodeInvocation + " )");
-      }
+      builder.addStatement("hashCode ^= " + hashCodeInvocation(property));
     }
 
     builder.addStatement("return hashCode");
@@ -190,37 +200,40 @@ public class ImmuObjectClasser extends ImmuClasser {
     return builder.build();
   }
 
-  private String hashCodeInvocation(String name, TypeKind kind) {
-    final String value = "this." + name;
+  private String hashCodeInvocation(ImmuProperty property) {
+    final String value = "this." + property.name();
+    final TypeKind kind = property.returnType().getKind();
+
+    final String invocation;
 
     switch (kind) {
       case ARRAY:
         return "java.util.Arrays.hashCode(" + value + ")";
 
       case INT:
-        return value;
-
+      case CHAR:
       case BYTE:
       case SHORT:
-        return "((~0) & " + value + ")";
-
-      case CHAR:
-        return "((int) " + value + ")";
+        return value;
 
       case BOOLEAN:
         return "(" + value + "? 1 : 0)";
 
       case LONG:
-        return "((int) (" + value + " >> 32) ^ (" + value + "))";
+        return "(int) ((" + value + " >> 32) ^ (" + value + "))";
 
       case FLOAT:
         return "Float.floatToIntBits(" + value + ")";
 
       case DOUBLE:
-        return "((int) (Double.doubleToLongBits(" + value + ") >> 32) ^ Double.doubleToLongBits(" + value + "))";
+        return "(int) ((Double.doubleToLongBits(" + value + ") >> 32) ^ Double.doubleToLongBits(" + value + "))";
 
       default:
-        return value + ".hashCode()";
+        if (property.isRequired()) {
+          return value + ".hashCode()";
+        }
+
+        return "java.util.Objects.hashCode(" + value + ")";
     }
   }
 
@@ -241,44 +254,37 @@ public class ImmuObjectClasser extends ImmuClasser {
 
     builder.addStatement("final $T immuObject = ($T) object", immuClass, immuClass);
 
-    builder.addStatement("boolean equals = true");
-
     properties.forEach((p) -> {
-      final String equalsInvocation = equalsInvocation(p);
+      final String equalsInvocation = notEqualsInvocation(p);
 
-      builder.addStatement("equals = equals && " + equalsInvocation);
+      builder.beginControlFlow("if (" + equalsInvocation + ")");
+      builder.addStatement("return false");
+      builder.endControlFlow();
     });
 
-    builder.addStatement("return equals");
+    builder.addStatement("return true");
 
     return builder.build();
   }
 
-  private String equalsInvocation(ImmuProperty property) {
+  private String notEqualsInvocation(ImmuProperty property) {
     final String name = property.name().toString();
     final String a = "this." + name;
     final String b = "immuObject." + name + "()";
 
-    final String invocation;
-
     switch (property.returnType().getKind()) {
       case DECLARED:
-        invocation = a + ".equals(" + b + ")";
-        break;
+        if (property.isRequired()) {
+          return "!" + a + ".equals(" + b + ")";
+        }
+
+        return "!java.util.Objects.equals(" + a + ", " + b + ")";
 
       case ARRAY:
-        invocation = "java.util.Arrays.equals(" + a + ", " + b + ")";
-        break;
+        return "!java.util.Arrays.equals(" + a + ", " + b + ")";
 
       default:
-        invocation = a + " == " + b;
-        break;
+        return a + " != " + b;
     }
-
-    if (!property.isRequired() && !property.isPrimitive()) {
-      return "(" + a + " == " + b + ") || (null != " + a + " && null != " + b + " && " + a + ".equals(" + b + "))";
-    }
-
-    return "(" + invocation + ")";
   }
 }
