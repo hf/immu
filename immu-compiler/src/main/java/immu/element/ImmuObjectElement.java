@@ -129,9 +129,7 @@ public class ImmuObjectElement extends ImmuElement {
     final List<ImmuProperty> properties = new LinkedList<>();
 
     for (TypeMirror typeMirror : interfaces) {
-      if (ElementKind.INTERFACE.equals(env.getTypeUtils().asElement(typeMirror).getKind())) {
-        properties.addAll(superProperties(env, typeMirror));
-      }
+      properties.addAll(superProperties(env, typeMirror));
     }
 
     return properties;

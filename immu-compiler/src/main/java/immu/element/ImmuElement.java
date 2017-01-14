@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Created by vuk on 05/01/17.
+ * An abstract Java element for the compiler.
  */
 public abstract class ImmuElement {
 

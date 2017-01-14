@@ -70,15 +70,14 @@ public interface Octopus extends LeggedAnimal {
 ...
 
 Octopus octocat = OctopusBuilder
-    // this is a checked creator
-    .create(/* name: */ "Octocat", /* favoriteOcean: */ "Pacific Ocean")
+    .create()
     .eyes(2)
     .legs(8)
     .favoriteOcean("Atlantic Ocean")
-    .build();
+    .build(); // @Required will be checked here
 
 Tweeter chirpy = TweeterBuilder
-    .create(/* name: */ "Chirpy")
+    .create()
     .twitter(/* may be null */ "@archillect")
     .eyes(2)
     .legs(2)

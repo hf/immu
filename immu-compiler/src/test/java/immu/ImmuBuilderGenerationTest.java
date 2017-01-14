@@ -4,8 +4,12 @@ import com.google.testing.compile.Compilation;
 import com.google.testing.compile.JavaFileObjects;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.google.testing.compile.CompilationSubject.assertThat;
 import static com.google.testing.compile.Compiler.javac;
@@ -75,6 +79,30 @@ public class ImmuBuilderGenerationTest {
             "}"));
 
     assertMainOutline("OuterClass.Empty", compilation);
+  }
+
+  @Test
+  public void generateBuilderForRequiredPrimitiveProperties() throws  Exception {
+    for (int nPrimitives : Arrays.asList(1, 31, 32, 33, 63, 64, 65)) {
+      final List<String> lines = new ArrayList<>();
+
+      lines.add("import immu.Immu;");
+      lines.add("import immu.Required;");
+      lines.add("@Immu");
+      lines.add("public interface RequiredPrimitiveProperties {");
+
+      lines.addAll(IntStream.range(0, nPrimitives)
+          .mapToObj((i) -> "@Required int primitive" + i + "();")
+          .collect(Collectors.toList()));
+
+      lines.add("}");
+
+      Compilation compilation = javac()
+          .withProcessors(new ImmuCompiler())
+          .compile(JavaFileObjects.forSourceLines("RequiredPrimitiveProperties", lines));
+
+      assertMainOutline("RequiredPrimitiveProperties", compilation);
+    }
   }
 
   private static void assertMainOutline(String immu, Compilation compilation) throws Exception {

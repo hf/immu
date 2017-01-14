@@ -8,8 +8,8 @@ import javax.lang.model.element.Element;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 
 public class ImmuElementTest {
@@ -33,6 +33,9 @@ public class ImmuElementTest {
     final ImmuElement elementA = new Elem(element);
     final ImmuElement elementB = new Elem(element);
 
+
+    assertEquals(elementA, elementA);
+    assertEquals(elementB, elementB);
     assertEquals(elementA, elementB);
     assertEquals(elementB, elementA);
   }
@@ -42,6 +45,10 @@ public class ImmuElementTest {
     final ImmuElement elementA = new Elem(mock(Element.class));
     final ImmuElement elementB = new Elem(mock(Element.class));
 
+    assertFalse(elementA.equals(null));
+    assertFalse(elementB.equals(null));
+    assertFalse(elementA.equals("hello"));
+    assertFalse(elementB.equals(new Object()));
     assertNotEquals(elementA, elementB);
     assertNotEquals(elementB, elementA);
   }

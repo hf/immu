@@ -64,7 +64,7 @@ public class ImmuObjectClasser extends ImmuClasser {
         .map((p) -> p.name().toString())
         .reduce(CodeBlock.builder(), (cb, name) -> cb
             .beginControlFlow("if (null == " + name + ")")
-            .addStatement("throw new $T($S)", ValueNotProvidedException.class, name)
+            .addStatement("throw $T.forProperty($S)", ValueNotProvidedException.class, name)
             .endControlFlow(), (cba, cbb) -> cba)
         .build();
 

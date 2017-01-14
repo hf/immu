@@ -44,7 +44,7 @@ public class ImmuCompiler implements Processor {
       return results
           .stream()
           .map(ImmuPredicate.Result::isSuccess)
-          .reduce(true, (a, r) -> r && a);
+          .allMatch((r) -> r);
     }
   }
 
@@ -123,7 +123,7 @@ public class ImmuCompiler implements Processor {
     final boolean allValid = validationResults
         .stream()
         .map(ValidationResult::isSuccess)
-        .reduce(true, (a, r) -> r && a);
+        .allMatch((r) -> r);
 
     if (!allValid) {
       return false;

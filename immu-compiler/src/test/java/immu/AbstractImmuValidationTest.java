@@ -65,6 +65,7 @@ public abstract class AbstractImmuValidationTest {
         .compile(
             JavaFileObjects.forSourceLines("SuperInterface",
                 "public interface SuperInterface {",
+                "String FIELD = \"field\";",
                 "void methodA();",
                 "String methodB();",
                 "}"),
@@ -209,6 +210,29 @@ public abstract class AbstractImmuValidationTest {
                 "public interface Both { }"));
 
     assertThat(compilation).hadWarningContainingMatch("Both.+annotated.+@Immu.+@SuperImmu");
+  }
+
+  @Test
+  public void exerciseSupperImmuWithMoreThanMethods() throws Exception {
+    Compilation compilation = javac()
+        .withProcessors(new ImmuCompiler())
+        .compile(
+            JavaFileObjects.forSourceLines("Both",
+                "import immu.Immu;",
+                "import immu.SuperImmu;",
+                "public class Both {",
+                "@SuperImmu",
+                "public interface Upper {",
+                "String FIELD = \"field\";",
+                "int upperProperty();",
+                "}",
+                "@Immu",
+                "public interface Lower extends Upper {",
+                "int property();",
+                "}",
+                "}"));
+
+    assertThat(compilation).hadErrorCount(0);
   }
 
 }
