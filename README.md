@@ -89,11 +89,11 @@ Octopus octocatsBro = OctopusBuilder
     .build();
 ```
 
-### API freeze
+## API freeze
 
 No matter how much the implementation of the compiler (annotation processor) 
 changes in the future, these are the APIs that will **always** be exposed by 
-Immu.
+Immu (versions above `0.0.X`).
 
 Builders will always have the suffix `Builder` from the interface name.
 
@@ -138,7 +138,8 @@ and will always be prefixed with `Immutable` onto the interface name.
   @Override public PropertyType propertyReference() { /* ... */ }
   
   // a standards compliant hash code, that is an XOR of all property values
-  // and most importantly, the starting value is TheImmuInterface.class.hashCode()
+  // and most importantly, the starting value is 
+  // TheImmuInterface.class.getCanonicalName().hashCode()
   @Override public int hashCode() { /* ... */ }
   
   // an equals implementation that does equality checks on the TheImmuInterface, 
@@ -150,7 +151,23 @@ and will always be prefixed with `Immutable` onto the interface name.
 Other features may be present, per release. However, these features will always
 be available and will **never** change. 
 
-### Building, Contributing
+### Why the `hashCode`?
+
+`@Immu` interfaces have a very strict structure that expresses: instances
+of this class with these properties, will forever be immutable and cannot
+be changed. However, being an interface, the instances may be different.
+Say that they are different: then both of them should express the 
+same semantics as `@Immu`. In order to have those two differing instance
+implementations have the same `hashCode`, they must use a common 
+starter value. `0` a choice, but it's too generic and will probably
+have *worse* performance in hashed collections than a non-generic 
+starter value. It is natural that this common value should be derived
+from the class. That's why we are using the hash value of the interface's
+canonical name as the starting value. We are not using the class-object's
+`hashCode` since that *may* be bound to the `ClassLoader` that owns the
+class object.
+
+## Building, Contributing
 
 Building requires JDK8. It is recommended you use versions *above* 
 `1.8.0_31` since there have been issues with hanging compiler tests including
@@ -161,7 +178,7 @@ since that would be impossible without forking `javac`. Therefore, the
 processor uses the excellent `com.google.testing.compile:compile-testing` 
 library from Google.
 
-# License
+## License
 
 Copyright &copy; 2017 Stojan Dimitrovski
 

@@ -10,11 +10,15 @@ import static org.junit.Assert.assertEquals;
 
 public class PropertiesHashCodeTest {
 
+  private static int defaultHashCode(Class<?> klass) {
+    return klass.getCanonicalName().hashCode();
+  }
+
   @Test
   public void exerciseHashCodeWithNulls() throws Exception {
     final Properties properties = PropertiesBuilder.create().build();
 
-    assertEquals(Properties.class.hashCode(), properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class), properties.hashCode());
   }
 
   @Test
@@ -25,7 +29,7 @@ public class PropertiesHashCodeTest {
         .propertyLong(longValue)
         .build();
 
-    assertEquals(Properties.class.hashCode() ^ (int) ((longValue >> 32) ^ (longValue)), properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ (int) ((longValue >> 32) ^ (longValue)), properties.hashCode());
   }
 
   @Test
@@ -36,7 +40,7 @@ public class PropertiesHashCodeTest {
         .propertyIntArray(array)
         .build();
 
-    assertEquals(Properties.class.hashCode() ^ Arrays.hashCode(array), properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ Arrays.hashCode(array), properties.hashCode());
   }
 
   @Test
@@ -47,7 +51,7 @@ public class PropertiesHashCodeTest {
         .propertyIntMatrix(matrix)
         .build();
 
-    assertEquals(Properties.class.hashCode() ^ Arrays.hashCode(matrix), properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ Arrays.hashCode(matrix), properties.hashCode());
   }
 
   @Test
@@ -60,7 +64,7 @@ public class PropertiesHashCodeTest {
 
     final long bits = Double.doubleToLongBits(doubleValue);
 
-    assertEquals(Properties.class.hashCode() ^ (int) ((bits >> 32) ^ bits), properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ (int) ((bits >> 32) ^ bits), properties.hashCode());
   }
 
   @Test
@@ -71,7 +75,7 @@ public class PropertiesHashCodeTest {
         .propertyFloat(floatValue)
         .build();
 
-    assertEquals(Properties.class.hashCode() ^ Float.floatToIntBits(floatValue), properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ Float.floatToIntBits(floatValue), properties.hashCode());
   }
 
   @Test
@@ -82,7 +86,7 @@ public class PropertiesHashCodeTest {
         .propertyByte(byteValue)
         .build();
 
-    assertEquals(Properties.class.hashCode() ^ ((~0) & byteValue), properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ ((~0) & byteValue), properties.hashCode());
   }
 
   @Test
@@ -93,7 +97,7 @@ public class PropertiesHashCodeTest {
         .propertyChar(charValue)
         .build();
 
-    assertEquals(Properties.class.hashCode() ^ ((~0) & charValue), properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ ((~0) & charValue), properties.hashCode());
   }
 
   @Test
@@ -104,7 +108,7 @@ public class PropertiesHashCodeTest {
         .propertyBoolean(booleanValue)
         .build();
 
-    assertEquals(Properties.class.hashCode() ^ 1, properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ 1, properties.hashCode());
   }
 
   @Test
@@ -115,7 +119,7 @@ public class PropertiesHashCodeTest {
         .propertyBoolean(booleanValue)
         .build();
 
-    assertEquals(Properties.class.hashCode() ^ 0, properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ 0, properties.hashCode());
   }
 
   @Test
@@ -126,6 +130,6 @@ public class PropertiesHashCodeTest {
         .propertyListOfWildcardCollection(collection)
         .build();
 
-    assertEquals(Properties.class.hashCode() ^ collection.hashCode(), properties.hashCode());
+    assertEquals(defaultHashCode(Properties.class) ^ collection.hashCode(), properties.hashCode());
   }
 }

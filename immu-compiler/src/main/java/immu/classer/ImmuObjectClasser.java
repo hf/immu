@@ -184,12 +184,12 @@ public class ImmuObjectClasser extends ImmuClasser {
     final CodeBlock.Builder builder = CodeBlock.builder();
 
     if (properties.isEmpty()) {
-      builder.addStatement("return $T.class.hashCode()", immuClass);
+      builder.addStatement("return $T.class.getCanonicalName().hashCode()", immuClass);
 
       return builder.build();
     }
 
-    builder.addStatement("int hashCode = $T.class.hashCode()", immuClass);
+    builder.addStatement("int hashCode = $T.class.getCanonicalName().hashCode()", immuClass);
 
     for (ImmuProperty property : properties) {
       builder.addStatement("hashCode ^= " + hashCodeInvocation(property));
