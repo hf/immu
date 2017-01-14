@@ -89,6 +89,67 @@ Octopus octocatsBro = OctopusBuilder
     .build();
 ```
 
+### API freeze
+
+No matter how much the implementation of the compiler (annotation processor) 
+changes in the future, these are the APIs that will **always** be exposed by 
+Immu.
+
+Builders will always have the suffix `Builder` from the interface name.
+
+```java
+// a Builder for an @Immu annotated interface
+public final class Builder {
+  // creates a new builder and initializes all builder values from the provided immu
+  public static Builder from(Immu immu) { /* ... */ }
+  
+  // creates a new empty builder
+  public static Builder create() { /* ... */ }
+  
+  // property setter for reference types / declared types
+  public Builder propertyName(PropertyType value) { /* ... */ }
+  
+  // property setter for primitive types
+  public Builder propertyName(primitive_type value) { /* ... */ }
+  
+  // builds a new Immu object from the values provided here, if there are any
+  // @Required properties, this method will throw a ValueNotProvidedException
+  // that will explain which property was not provided
+  public Object build() { /* ... */ }
+}
+```
+
+Implementations of the immutable interface will always be package-protected,
+and will always be prefixed with `Immutable` onto the interface name.
+
+```java
+// the immutable object implementation class
+/* package-protected */ final class Immutable implements TheImmuInterface {
+  
+  // constructor for all values, will throw a ValueNotProvidedException if a
+  // reference / declared property has been annotated with @Required and was
+  // provided a value that is null
+  Immutable(/* ... */) { /* ... */ }
+  
+  // getter for primitive type properties
+  @Override public primitive_type propertyPrimitive() { /* ... */ }
+  
+  // getter for reference / declared properties
+  @Override public PropertyType propertyReference() { /* ... */ }
+  
+  // a standards compliant hash code, that is an XOR of all property values
+  // and most importantly, the starting value is TheImmuInterface.class.hashCode()
+  @Override public int hashCode() { /* ... */ }
+  
+  // an equals implementation that does equality checks on the TheImmuInterface, 
+  // and not on the generated class
+  @Override public boolean equals(Object object) { /* ... */ }
+}
+```
+
+Other features may be present, per release. However, these features will always
+be available and will **never** change. 
+
 ### Building, Contributing
 
 Building requires JDK8. It is recommended you use versions *above* 
