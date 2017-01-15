@@ -187,7 +187,7 @@ public class ImmuObjectClasser extends ImmuClasser {
           .endControlFlow()
           .addStatement("final $T builder = new $T()", StringBuilder.class, StringBuilder.class)
           .addStatement("builder.append(\"$T@\")", immuClass)
-          .addStatement("builder.append(String.format(($T) null, $S, $T.identityHashCode(this)))", Locale.class, "@%08x", System.class);
+          .addStatement("builder.append($T.format(($T) null, $S, $T.identityHashCode(this)))", String.class, Locale.class, "@%08x", System.class);
 
     if (properties.isEmpty()) {
       builder.addStatement("builder.append($S)", "{  }");
@@ -220,13 +220,30 @@ public class ImmuObjectClasser extends ImmuClasser {
 
     if (p.isRequired() || p.isPrimitive()) {
       builder.addStatement("builder.append('<')");
-      builder.addStatement("builder.append(this." + name + ")");
+      if (p.isPrimitive()) {
+        builder.addStatement("builder.append(this." + name + ")");
+      } else {
+        if (TypeKind.ARRAY.equals(p.returnType().getKind())) {
+          builder.addStatement("builder.append($T.toString(this." + name + "))", Arrays.class);
+        } else {
+          builder.addStatement("builder.append(this." + name + ")");
+        }
+      }
       builder.addStatement("builder.append('>')");
+
+      if (!p.isPrimitive()) {
+        builder.addStatement("builder.append($T.format(($T) null, $S, $T.identityHashCode(this." + name + ")))", String.class, Locale.class, "@%08x", System.class);
+      }
     } else {
       builder.beginControlFlow("if (null != this." + name + ")");
       builder.addStatement("builder.append('<')");
-      builder.addStatement("builder.append(this." + name + ")");
+      if (TypeKind.ARRAY.equals(p.returnType().getKind())) {
+        builder.addStatement("builder.append($T.toString(this." + name + "))", Arrays.class);
+      } else {
+        builder.addStatement("builder.append(this." + name + ")");
+      }
       builder.addStatement("builder.append('>')");
+      builder.addStatement("builder.append($T.format(($T) null, $S, $T.identityHashCode(this." + name + ")))", String.class, Locale.class, "@%08x", System.class);
       builder.nextControlFlow("else");
       builder.addStatement("builder.append($S)", "@null");
       builder.endControlFlow();
