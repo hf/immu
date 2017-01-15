@@ -124,7 +124,7 @@ and will always be prefixed with `Immutable` onto the interface name.
 
 ```java
 // the immutable object implementation class
-/* package-protected */ final class Immutable implements TheImmuInterface {
+/* package-protected */ final class Immutable implements TheImmuInterface, Immutable {
   
   // constructor for all values, will throw a ValueNotProvidedException if a
   // reference / declared property has been annotated with @Required and was
@@ -142,9 +142,15 @@ and will always be prefixed with `Immutable` onto the interface name.
   // TheImmuInterface.class.getCanonicalName().hashCode()
   @Override public int hashCode() { /* ... */ }
   
+  // generates a developer-readable toString with a very specific format
+  @Override public String toString() { /* ... */ }
+  
   // an equals implementation that does equality checks on the TheImmuInterface, 
   // and not on the generated class
   @Override public boolean equals(Object object) { /* ... */ }
+  
+  // will optimistically clear any cached values, like a cached toString() value
+  @Override void clear() { /* ... */ }
 }
 ```
 
@@ -166,6 +172,32 @@ from the class. That's why we are using the hash value of the interface's
 canonical name as the starting value. We are not using the class-object's
 `hashCode` since that *may* be bound to the `ClassLoader` that owns the
 class object.
+
+`hashCode` values may be cached.
+
+### About `toString`
+
+Immu will generate a developer-friendly `toString()` implementation with the
+following structure:
+
+```text
+ImmuInterface@0abcdefa{ propertyName = @null, propertyName = <value>@0abcdefa }
+```
+
+Where `propertyName` is the name of the property. `@null` is a special value 
+that designates that the property had a value of `null`. 
+
+`@0abcdefa` is an 8-character, hex value of `System.identityHashCode()` of the 
+object in question. 
+
+`<value>@0abcdefa` is the value for the property as well as the 
+`System.identityHashCode()` of the object in question. The location information 
+will not be present for primitive types (`int`, `byte`, ...).
+
+`toString` values are cached. They can be cleared by accessing the 
+`immu.Immutable#clear()` method, but this is only recommended for 
+memory-constrained platforms such as Android, and even then it may not be 
+necessary (depending on how many objects you have).
 
 ## Building, Contributing
 

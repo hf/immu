@@ -110,10 +110,10 @@ public class ImmuObjectGenerationTest {
   private static void assertMainOutline(String immu, Compilation compilation) throws Exception {
     final String object = "Immutable" + immu.replaceAll("\\.", "");
 
-    assertThat(compilation).generatedSourceFile(object).contentsAsUtf8String().containsMatch("(?!public)\\s+final\\s+class\\s+" + object + "\\s+implements\\s+" + immu + "\\s*\\{");
+    assertThat(compilation).generatedSourceFile(object).contentsAsUtf8String().containsMatch("(?!public)\\s+final\\s+class\\s+" + object + "\\s+implements\\s+" + immu + "\\s*,\\s*Immutable\\s*\\{");
     assertThat(compilation).generatedSourceFile(object).contentsAsUtf8String().containsMatch("@Override\\s+public\\s+boolean\\s+equals\\s*\\(\\s*(final\\s+)?Object\\s+[a-z]+\\s*\\)\\s*\\{");
     assertThat(compilation).generatedSourceFile(object).contentsAsUtf8String().containsMatch("@Override\\s+public\\s+int\\s+hashCode\\s*\\(\\s*\\)\\s*\\{");
-    assertThat(compilation).generatedSourceFile(object).contentsAsUtf8String().containsMatch("@Override\\s+public\\s+String\\s+toString\\s*\\(\\s*\\)\\s*\\{[^}]+" + immu + "[^}]+System\\s*\\.\\s*identityHashCode\\s*\\(\\s*this\\s*\\)[^}]*\\}");
+    assertThat(compilation).generatedSourceFile(object).contentsAsUtf8String().containsMatch("@Override\\s+public\\s+String\\s+toString\\s*\\(\\s*\\)\\s*\\{");
   }
 
   private static void assertHasProperties(String immu, Compilation compilation, String... properties) throws Exception {

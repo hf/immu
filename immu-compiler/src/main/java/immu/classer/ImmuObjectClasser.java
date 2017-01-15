@@ -1,6 +1,7 @@
 package immu.classer;
 
 import com.squareup.javapoet.*;
+import immu.Immutable;
 import immu.ValueNotProvidedException;
 import immu.element.ImmuObjectElement;
 import immu.element.ImmuProperty;
@@ -8,10 +9,7 @@ import immu.element.ImmuProperty;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeKind;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -120,21 +118,41 @@ public class ImmuObjectClasser extends ImmuClasser {
         .map(TypeVariableName::get)
         .collect(Collectors.toList());
 
+    final MethodSpec clear = MethodSpec.methodBuilder("clear")
+        .addModifiers(Modifier.PUBLIC)
+        .addAnnotation(Override.class)
+        .addCode(CodeBlock.builder()
+            .addStatement("this.computedToString = null")
+            .build())
+        .returns(void.class)
+        .addJavadoc(CodeBlock.builder()
+            .add("Clears the cached computed {@link #toString()} value.\n")
+            .build())
+        .build();
+
     return TypeSpec.classBuilder(objectClass)
         .addModifiers(Modifier.FINAL)
         .addTypeVariables(typeVariables)
         .addSuperinterface(immuClass)
+        .addSuperinterface(Immutable.class)
         .addFields(fields)
+        .addField(FieldSpec.builder(int.class, "computedHashCode", Modifier.PRIVATE, Modifier.TRANSIENT, Modifier.VOLATILE).build())
+        .addField(FieldSpec.builder(String.class, "computedToString", Modifier.PRIVATE, Modifier.TRANSIENT, Modifier.VOLATILE).build())
         .addMethod(constructor)
         .addMethods(methods)
         .addMethod(hashCode)
         .addMethod(equals)
         .addMethod(toString)
+        .addMethod(clear)
         .build();
   }
 
   private CodeBlock toStringBlock(ClassName immuClass, List<ImmuProperty> properties) {
     final CodeBlock.Builder builder = CodeBlock.builder()
+          .addStatement("final $T existingToString = this.computedToString", String.class)
+          .beginControlFlow("if (null != existingToString)")
+          .addStatement("return existingToString")
+          .endControlFlow()
           .addStatement("final $T builder = new $T()", StringBuilder.class, StringBuilder.class)
           .addStatement("builder.append(\"$T@\")", immuClass)
           .addStatement("builder.append(String.format(($T) null, $S, $T.identityHashCode(this)))", Locale.class, "@%08x", System.class);
@@ -156,7 +174,10 @@ public class ImmuObjectClasser extends ImmuClasser {
       builder.addStatement("builder.append($S)", " }");
     }
 
-    return builder.addStatement("return builder.toString()")
+    builder.addStatement("final $T generatedToString = builder.toString()", String.class);
+    builder.addStatement("this.computedToString = generatedToString");
+
+    return builder.addStatement("return generatedToString")
         .build();
   }
 
@@ -183,8 +204,15 @@ public class ImmuObjectClasser extends ImmuClasser {
   private CodeBlock hashCodeBlock(ClassName immuClass, List<ImmuProperty> properties) {
     final CodeBlock.Builder builder = CodeBlock.builder();
 
+    builder.addStatement("final int existingHashCode = this.computedHashCode");
+    builder.beginControlFlow("if (0 != existingHashCode)");
+    builder.addStatement("return existingHashCode");
+    builder.endControlFlow();
+
     if (properties.isEmpty()) {
-      builder.addStatement("return $T.class.getCanonicalName().hashCode()", immuClass);
+      builder.addStatement("final int hashCode = $T.class.getCanonicalName().hashCode()", immuClass);
+      builder.addStatement("this.computedHashCode = hashCode");
+      builder.addStatement("return hashCode");
 
       return builder.build();
     }
@@ -192,48 +220,58 @@ public class ImmuObjectClasser extends ImmuClasser {
     builder.addStatement("int hashCode = $T.class.getCanonicalName().hashCode()", immuClass);
 
     for (ImmuProperty property : properties) {
-      builder.addStatement("hashCode ^= " + hashCodeInvocation(property));
+      hashCodeInvocation(property, builder);
     }
+
+    builder.addStatement("this.computedHashCode = hashCode");
 
     builder.addStatement("return hashCode");
 
     return builder.build();
   }
 
-  private String hashCodeInvocation(ImmuProperty property) {
+  private void hashCodeInvocation(ImmuProperty property, CodeBlock.Builder builder) {
     final String value = "this." + property.name();
     final TypeKind kind = property.returnType().getKind();
 
-    final String invocation;
-
     switch (kind) {
       case ARRAY:
-        return "java.util.Arrays.hashCode(" + value + ")";
+        builder.addStatement("hashCode ^= $T.hashCode(" + value + ")", Arrays.class);
+        return;
 
       case INT:
       case CHAR:
       case BYTE:
       case SHORT:
-        return value;
+        builder.addStatement("hashCode ^= " + value);
+        return;
 
       case BOOLEAN:
-        return "(" + value + "? 1 : 0)";
+        builder.addStatement("hashCode ^= (" + value + "? 1 : 0)");
+        return;
 
       case LONG:
-        return "(int) ((" + value + " >> 32) ^ (" + value + "))";
+        builder.addStatement("hashCode ^= (int) (" + value + " >> 32)");
+        builder.addStatement("hashCode ^= (int) " + value);
+        return;
 
       case FLOAT:
-        return "Float.floatToIntBits(" + value + ")";
+        builder.addStatement("hashCode ^= $T.floatToIntBits(" + value + ")", Float.class);
+        return;
 
       case DOUBLE:
-        return "(int) ((Double.doubleToLongBits(" + value + ") >> 32) ^ Double.doubleToLongBits(" + value + "))";
+        builder.addStatement("hashCode ^= (int) ($T.doubleToLongBits(" + value + ") >> 32)", Double.class);
+        builder.addStatement("hashCode ^= (int) $T.doubleToLongBits(" + value + ")", Double.class);
+        return;
 
       default:
         if (property.isRequired()) {
-          return value + ".hashCode()";
+          builder.addStatement("hashCode ^= " + value + ".hashCode()");
+          return;
         }
 
-        return "java.util.Objects.hashCode(" + value + ")";
+        builder.addStatement("hashCode ^= $T.hashCode(" + value + ")", Objects.class);
+        return;
     }
   }
 

@@ -1,6 +1,7 @@
 package immu.element;
 
 import immu.Immu;
+import immu.Immutable;
 import immu.SuperImmu;
 import immu.element.predicate.ImmuPredicate;
 
@@ -103,7 +104,6 @@ public class ImmuObjectElement extends ImmuElement {
   public List<? extends TypeMirror> superInterfaces() {
     return ((TypeElement) element).getInterfaces();
   }
-
   /**
    * Returns a list of the immediate properties in the object.
    * @see #superProperties(ProcessingEnvironment)
