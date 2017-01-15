@@ -11,4 +11,7 @@ public interface RequiredProperties {
 
   @Required
   int propertyPrimitive();
+
+  @Required
+  int[] propertyArray();
 }
