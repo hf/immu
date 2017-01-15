@@ -1,6 +1,7 @@
 package immu.classer;
 
 import com.squareup.javapoet.*;
+import immu.Required;
 import immu.ValueNotProvidedException;
 import immu.element.ImmuElement;
 import immu.element.ImmuObjectElement;
@@ -71,6 +72,8 @@ public class ImmuBuilderClasser extends ImmuClasser {
 
   @Override
   public TypeSpec generate(ProcessingEnvironment env) {
+    final ClassName immuClass = className();
+    final ClassName objectClass = objectClass();
     final ClassName builderClass = builderClass();
 
     final List<ImmuProperty> declaredProperties = element.properties();
@@ -92,6 +95,13 @@ public class ImmuBuilderClasser extends ImmuClasser {
         .addMethod(constructor(analyzedProperties))
         .addMethods(setters(analyzedProperties))
         .addMethod(build(analyzedProperties))
+        .addJavadoc(CodeBlock.builder()
+            .add("A builder for immutable instances of {@link $T}.\n", immuClass)
+            .add("<p>\nUnder the hood uses {@link $T}.\n", objectClass)
+            .add("@see #create()\n")
+            .add("@see #from($T)\n", immuClass)
+            .add("@see #build()\n")
+            .build())
         .build();
   }
 
@@ -130,9 +140,15 @@ public class ImmuBuilderClasser extends ImmuClasser {
   }
 
   private Iterable<FieldSpec> fields(AnalyzedProperties analyzedProperties) {
+    final ClassName immuClass = className();
+
     final List<FieldSpec> propertyFields = analyzedProperties.properties
         .stream()
-        .map((p) -> FieldSpec.builder(TypeName.get(p.returnType()), p.name().toString(), Modifier.TRANSIENT, Modifier.PRIVATE).build())
+        .map((p) -> FieldSpec.builder(TypeName.get(p.returnType()), p.name().toString(), Modifier.TRANSIENT, Modifier.PRIVATE)
+            .addJavadoc(CodeBlock.builder()
+                .add("Field for {@link $T#" + p.name().toString() + "()}.\n", immuClass)
+                .build())
+            .build())
         .collect(Collectors.toList());
 
     if (analyzedProperties.checkerInts > 0) {
@@ -167,7 +183,33 @@ public class ImmuBuilderClasser extends ImmuClasser {
     return MethodSpec.methodBuilder(name)
             .addModifiers(Modifier.PUBLIC)
             .addParameter(TypeName.get(property.returnType()), name, Modifier.FINAL)
-            .returns(builderClass);
+            .returns(builderClass)
+            .addJavadoc(propertySetterJavadoc(property));
+  }
+
+  private CodeBlock propertySetterJavadoc(ImmuProperty property) {
+    final String name = property.name().toString();
+    final ClassName immuClass = className();
+
+    final CodeBlock.Builder builder = CodeBlock.builder()
+        .add("Set a value for {@link $T#" + name + "()}.\n", immuClass)
+        .add("<p>\n");
+
+    if (property.isRequired()) {
+      if (property.isPrimitive()) {
+        builder.add("This is a {@link $T} property, and once set will be marked as set.\n", Required.class);
+      } else {
+        builder.add("This is a {@link $T} property, and its value in {@link #build()} must not be null.\n", Required.class);
+      }
+    } else {
+      builder.add("This is not a {@link $T} property.\n", Required.class);
+    }
+
+    return builder
+        .add("@see #build()\n")
+        .add("@param name the value\n")
+        .add("@return the builder for chaining, never null\n")
+        .build();
   }
 
   private CodeBlock propertySetterCodeBlock(ImmuProperty property) {
@@ -198,6 +240,8 @@ public class ImmuBuilderClasser extends ImmuClasser {
   }
 
   private MethodSpec constructor(AnalyzedProperties analyzedProperties) {
+    final ClassName immuClass = className();
+
     final MethodSpec.Builder builder = MethodSpec.constructorBuilder()
         .addModifiers(Modifier.PRIVATE);
 
@@ -211,7 +255,14 @@ public class ImmuBuilderClasser extends ImmuClasser {
       }
     }
 
-    return builder.build();
+    return builder
+        .addJavadoc(CodeBlock.builder()
+            .add("Create an empty builder that will mark all {@link $T} properties as not provided.\n", Required.class)
+            .add("@see #build()\n")
+            .add("@see #create()\n")
+            .add("@see #from($T)\n", immuClass)
+            .build())
+        .build();
   }
 
   private Iterable<MethodSpec> creators(AnalyzedProperties analyzedProperties) {
@@ -219,11 +270,18 @@ public class ImmuBuilderClasser extends ImmuClasser {
   }
 
   private MethodSpec creatorStatic() {
+    final ClassName immuClass = className();
     final ClassName builderClass = builderClass();
 
     return MethodSpec.methodBuilder("create")
         .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
         .addCode(creatorCodeBlock(builderClass))
+        .addJavadoc(CodeBlock.builder()
+            .add("Creates an empty builder.\n")
+            .add("@see #build()\n")
+            .add("@see #from($T)\n", immuClass)
+            .add("@return an empty builder, never null\n")
+            .build())
         .returns(builderClass)
         .build();
   }
@@ -237,6 +295,13 @@ public class ImmuBuilderClasser extends ImmuClasser {
         .returns(builderClass)
         .addParameter(immuClass, "immutable")
         .addCode(copierCodeBlock(builderClass, analyzedProperties.properties))
+        .addJavadoc(CodeBlock.builder()
+            .add("Creates a new builder with values initialized from the provided immutable object instance.\n")
+            .add("@see #create()\n")
+            .add("@see #build()\n")
+            .add("@param immutable the immutable object instance, must not be null\n")
+            .add("@return an initialized builder, never null\n")
+            .build())
         .build();
   }
 
@@ -252,7 +317,12 @@ public class ImmuBuilderClasser extends ImmuClasser {
 
     final MethodSpec.Builder builder = MethodSpec.methodBuilder("build")
         .addModifiers(Modifier.PUBLIC)
-        .returns(immuClass);
+        .returns(immuClass)
+        .addJavadoc(CodeBlock.builder()
+            .add("Builds a new immutable object instance from the values in this builder.\n")
+            .add("@throws $T if this builder did not receive a value for an {@link $T} annotated property\n", ValueNotProvidedException.class, Required.class)
+            .add("@return a new immutable object instance, never null\n")
+            .build());
 
     final List<PropertyWithIndex> indexedProperties = analyzedProperties.indexedProperties;
 

@@ -1,6 +1,7 @@
 package immu.classer;
 
 import com.squareup.javapoet.*;
+import immu.Required;
 import immu.Immutable;
 import immu.ValueNotProvidedException;
 import immu.element.ImmuObjectElement;
@@ -73,10 +74,16 @@ public class ImmuObjectClasser extends ImmuClasser {
         .reduce(CodeBlock.builder(), (cb, s) -> cb.addStatement(s), (cba, cbb) -> cba)
         .build();
 
+
     final MethodSpec constructor = MethodSpec.constructorBuilder()
         .addParameters(parameters)
         .addCode(constructorDeclaredRequiredChecker)
         .addCode(constructorInitializer)
+        .addJavadoc(CodeBlock.builder()
+            .add("Construct a new immutable object. Only copies and checks for null values of the provided arguments.\n")
+            .add("@see $T#build()\n", builderClass())
+            .add("@throws $T if a property is annotated as {@link $T} but has been given a value of null\n", ValueNotProvidedException.class, Required.class)
+            .build())
         .build();
 
     final MethodSpec hashCode = MethodSpec.methodBuilder("hashCode")
@@ -84,6 +91,11 @@ public class ImmuObjectClasser extends ImmuClasser {
         .returns(int.class)
         .addAnnotation(Override.class)
         .addCode(hashCodeBlock(immuClass, properties))
+        .addJavadoc(CodeBlock.builder()
+            .add("Computes the hash code for this object. This is an XOR operation of the hash codes of all properties")
+            .add("in {@link $T} as well as {@code $T.class.getCanonicalName().hashCode()}.\n", immuClass, immuClass)
+            .add("@return the hash code\n")
+            .build())
         .build();
 
     final MethodSpec toString = MethodSpec.methodBuilder("toString")
@@ -91,6 +103,14 @@ public class ImmuObjectClasser extends ImmuClasser {
         .returns(String.class)
         .addAnnotation(Override.class)
         .addCode(toStringBlock(immuClass, properties))
+        .addJavadoc(CodeBlock.builder()
+            .add("Constructs a string representing the immutable object described in {@link $T}.\n", immuClass)
+            .add("<p>\nThe format of the string will be:\n")
+            .add("<pre>$T@0abcdefa{ propertyName = &lt;VALUE&gt;, propertyName = @null }</pre>\n", immuClass)
+            .add("<p>\nThe order of the properties will be the same as defined in {@link $T}.\n", immuClass)
+            .add("<p>\n{@code @null} means the value was null, and {@code <null>} means that there was an object who's toString evaluated to {@code \"null\"}.\n")
+            .add("@return the string representation, never null\n")
+            .build())
         .build();
 
     final MethodSpec equals = MethodSpec.methodBuilder("equals")
@@ -99,6 +119,13 @@ public class ImmuObjectClasser extends ImmuClasser {
         .addAnnotation(Override.class)
         .addParameter(Object.class, "object")
         .addCode(equalsBlock(immuClass, properties))
+        .addJavadoc(CodeBlock.builder()
+            .add("Checks whether the provided object is equal to this object.\n")
+            .add("<p>\nDiffers slightly from the normal Java convention in that it will consider the provided object")
+            .add("as equal if and only if it is an instance of {@link $T}.\n", immuClass)
+            .add("<p>\nAfterwards, all properties are being compared for equality.\n")
+            .add("@return if the objects are equal\n")
+            .build())
         .build();
 
     final List<MethodSpec> methods = properties
@@ -144,6 +171,11 @@ public class ImmuObjectClasser extends ImmuClasser {
         .addMethod(equals)
         .addMethod(toString)
         .addMethod(clear)
+        .addJavadoc(CodeBlock.builder()
+            .add("An immutable implementation of {@link $T}.\n", immuClass)
+            .add("<p>\nYou should avoid usage of this class, and instead prefer using the {@link $T}.\n", builderClass())
+            .add("@see $T\n", immuClass)
+            .build())
         .build();
   }
 
