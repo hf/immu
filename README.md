@@ -38,8 +38,8 @@ that data is not necessarily standalone.
 `@Required` is for properties only. If a property is annotated with
 `@Required` it will have to be provided in builders and constructors. For
 declared types (things that are objects, basically) this means that they
-must not be `null`. For primitive types, it only applies for builders:
-you will have to provide a value in the builder creator.
+must not be `null`, for primitive types (`int`, `byte`, ...) this means that
+they will have to be provided at least once before building.
 
 That's basically it. No bullshit.
 
