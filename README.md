@@ -13,6 +13,35 @@ toStrings, nullability, ...
 So, one night I sat down and coded Immu. Its point is to be minimal and do
 one thing well.
 
+## Quick Start
+
+Add this to your `build.gradle`
+
+```groovy
+repositories {
+    maven {
+        url  "http://dl.bintray.com/stojan/java" 
+    }
+}
+
+dependencies {
+  compile 'me.stojan.immu:immu-annotations:LATEST_VERSION'
+  apt     'me.stojan.immu:immu-compiler:LATEST_VERSION'
+}
+```
+
+Substitute `apt` for your favorite Gradle 
+[annotation processor plugin](https://github.com/tbroyer/gradle-apt-plugin).
+
+Android's newer build tools support `processor` instead of `apt` from 
+[android-apt](https://bitbucket.org/hvisser/android-apt).
+
+JDK 8 or newer is required for `javac` although the generated source code will
+be Java 1.5 compatible. But please, switch to the latest Java on your 
+platform.
+
+Using Maven? Figure it out. :)
+
 ## How?
 
 OK, so Immu has three annotations `@Immu`, `@SuperImmu` and `@Required`. You
