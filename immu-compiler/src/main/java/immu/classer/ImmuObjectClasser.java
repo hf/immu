@@ -11,6 +11,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeKind;
 import java.util.*;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -61,19 +62,19 @@ public class ImmuObjectClasser extends ImmuClasser {
         .filter((p) -> !p.isPrimitive())
         .filter(ImmuProperty::isRequired)
         .map((p) -> p.name().toString())
-        .reduce(CodeBlock.builder(), (cb, name) -> cb
+        .map((name) -> CodeBlock.builder()
             .beginControlFlow("if (null == " + name + ")")
             .addStatement("throw $T.forProperty($S)", ValueNotProvidedException.class, name)
-            .endControlFlow(), (cba, cbb) -> cba)
+            .endControlFlow())
+        .reduce(CodeBlock.builder(), (cba, cbb) -> cba.add(cbb.build()))
         .build();
 
     final CodeBlock constructorInitializer = properties
         .stream()
         .map((p) -> p.name().toString())
-        .map((p) -> "this." + p + " = " + p)
-        .reduce(CodeBlock.builder(), (cb, s) -> cb.addStatement(s), (cba, cbb) -> cba)
+        .map((p) -> CodeBlock.builder().addStatement("this." + p + " = " + p))
+        .reduce(CodeBlock.builder(), (cba, cbb) -> cba.add(cbb.build()))
         .build();
-
 
     final MethodSpec constructor = MethodSpec.constructorBuilder()
         .addParameters(parameters)

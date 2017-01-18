@@ -43,7 +43,7 @@ public class ImmuObjectGenerationTest {
   }
 
   @Test
-  public void generateImmutableObjectWithRequiredProperty() throws Exception {
+  public void generateImmutableObjectWithRequiredObjectProperty() throws Exception {
     Compilation compilation = javac()
         .withProcessors(new ImmuCompiler())
         .compile(JavaFileObjects.forSourceLines("SingleProperty",
@@ -56,6 +56,57 @@ public class ImmuObjectGenerationTest {
             "}"));
 
     assertMainOutline("SingleProperty", compilation);
+  }
+
+  @Test
+  public void generateImmutableObjectWithRequiredArrayProperty() throws Exception {
+    Compilation compilation = javac()
+        .withProcessors(new ImmuCompiler())
+        .compile(JavaFileObjects.forSourceLines("SingleProperty",
+            "import immu.Immu;",
+            "import immu.Required;",
+            "@Immu",
+            "public interface SingleProperty {",
+            "@Required",
+            "int[] property();",
+            "}"));
+
+    assertMainOutline("SingleProperty", compilation);
+  }
+
+  @Test
+  public void generateImmutableObjectWithMultipleRequiredProperties() throws Exception {
+    Compilation compilation = javac()
+        .withProcessors(new ImmuCompiler())
+        .compile(JavaFileObjects.forSourceLines("MultiProperty",
+            "import immu.Immu;",
+            "import immu.Required;",
+            "@Immu",
+            "public interface MultiProperty {",
+            "@Required int propertyInt();",
+            "@Required boolean propertyBoolean();",
+            "@Required byte propertyByte();",
+            "@Required short propertyShort();",
+            "@Required char propertyChar();",
+            "@Required long propertyLong();",
+            "@Required float propertyFloat();",
+            "@Required double propertyDouble();",
+            "@Required int[] propertyIntArray();",
+            "@Required String propertyString();",
+            "}"));
+
+    assertMainOutline("MultiProperty", compilation);
+    assertHasProperties("MultiProperty", compilation,
+        "int propertyInt",
+        "byte propertyByte",
+        "boolean propertyBoolean",
+        "short propertyShort",
+        "long propertyLong",
+        "float propertyFloat",
+        "char propertyChar",
+        "double propertyDouble",
+        "int[] propertyIntArray",
+        "String propertyString");
   }
 
   @Test
