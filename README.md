@@ -33,7 +33,7 @@ dependencies {
 Substitute `apt` for your favorite Gradle 
 [annotation processor plugin](https://github.com/tbroyer/gradle-apt-plugin).
 
-Android's newer build tools support `processor` instead of `apt` from 
+Android's newer build tools support `annotationProcessor` instead of `apt` from 
 [android-apt](https://bitbucket.org/hvisser/android-apt).
 
 JDK 8 or newer is required for `javac` although the generated source code will
