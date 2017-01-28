@@ -1,5 +1,6 @@
 package immu;
 
+import com.google.auto.service.AutoService;
 import com.squareup.javapoet.JavaFile;
 import immu.classer.ImmuBuilderClasser;
 import immu.classer.ImmuObjectClasser;
@@ -25,6 +26,7 @@ import java.util.stream.Stream;
 /**
  * The Immu compiler.
  */
+@AutoService(Processor.class)
 public class ImmuCompiler implements Processor {
 
   private static final class ValidationResult {
